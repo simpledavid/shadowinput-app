@@ -1,0 +1,32 @@
+# shadowinput documentation
+
+Start with [shadowinput](project/shadowinput.md), the [input method](project/shadowinput-ime.md), the [browser extension](project/shadowinput-extension.md), and [repository migration](project/shadowinput-repository.md). The remaining Arion architecture and historical evidence are retained as references; they do not establish shadowinput support or require private upstream infrastructure.
+
+This directory is the single source of truth for how this project is built, organized, and evolved by agents.
+
+## Product implementation
+
+- [Clipboard history](project/clipboard.md) — opt-in local resource history and internal-write isolation.
+
+- [Specifications](../specs/README.md) — normative workflows and acceptance IDs.
+- [Agent handoff](project/agent-handoff.md) — implementation tasks and dependencies.
+- [Repository split](project/repository-split.md) — public product ownership, private Git evidence and version-bound evaluation.
+- [Central sync design proposal](project/central-sync-design.md) — recommended encrypted data scope, competitor comparison and server/client delivery design.
+- [Research](research/README.md) — shipped-artifact evidence and local frameworks.
+
+## Domain map
+
+- [`project/`](project/README.md) — project overview, goals, architecture, and boundaries.
+- [`frontend/`](frontend/README.md) — Feature-Sliced Design (FSD) conventions.
+- [`backend/`](backend/README.md) — Domain-Driven Design (DDD) layered conventions.
+- [`operations/`](operations/README.md) — local development, CI/CD, and deployment.
+- [`quality/`](quality/README.md) — testing strategy, code-review expectations, and Agent Skills.
+- [`decisions/`](decisions/README.md) — architecture decision records (ADRs).
+
+## How to use this documentation
+
+1. If you are new to the project, read [`project/README.md`](project/README.md) and [`project/architecture.md`](project/architecture.md) first.
+2. Before writing frontend code, read [`frontend/README.md`](frontend/README.md).
+3. Before writing backend code, read [`backend/README.md`](backend/README.md).
+4. Before changing deployment, build, or operational behavior, read [`operations/README.md`](operations/README.md).
+5. If you change behavior, architecture, or conventions, update the relevant doc in the same change set.

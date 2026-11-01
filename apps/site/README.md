@@ -1,0 +1,56 @@
+# Arion site
+
+The marketing site for `arion.astrafoundry.si`: a Next.js static export (React 19, Tailwind v4, Motion, next-intl) in English, Simplified Chinese and Japanese, served by Cloudflare Workers static assets. It is not part of the desktop app ([ADR 016](../../docs/decisions/016-marketing-site.md)). Structure, routing and copy rules: [site conventions](../../docs/frontend/site.md).
+
+## Commands
+
+Run from the repository root with the pinned pnpm (`make install` first):
+
+| Command | Does |
+| --- | --- |
+| `pnpm site:check` / `make site-check` | Dictionary completeness, typecheck, lint, unit tests, static export |
+| `pnpm site:build` / `make build site` | Dictionary check and static export into `apps/site/out` |
+| `pnpm site:assets` / `make site-assets` | Regenerates `public/backdrops`, `public/brand` and `public/og.jpg` from repository sources |
+| `pnpm site:deploy` / `make site-deploy` | `wrangler deploy`; Make builds first, pnpm deploys the existing export (needs Cloudflare credentials in the shell; none are stored here) |
+
+`pnpm --filter @arion/site dev` starts the development server on `127.0.0.1`.
+
+## Blog
+
+Posts are Markdown in `content/blog/<slug>/{en,zh,ja}.md`, with their media in `public/blog/<slug>/`. Front matter, embeds and lazy media are described in the [blog guide](../../docs/frontend/blog.md).
+
+## Configuration
+
+Three build-time variables, inlined into the bundle (`src/shared/config/env.ts`). The build fails if any is missing or is not a bare http(s) origin.
+
+| Variable | Production value | Used for |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SITE_URL` | `https://arion.astrafoundry.si` | Canonical URLs, hreflang, sitemap, robots, Open Graph |
+| `NEXT_PUBLIC_PLATFORM_URL` | `https://astrafoundry.si` | The AstraFoundry account link (`/account`) and the hosted sync waitlist link (`/products/arion/waitlist/hosted-sync`) |
+| `NEXT_PUBLIC_CENTER_URL` | `https://api.arion.astrafoundry.si` | Download buttons (`/v1/downloads/<channel>/<target>`) and the browser read of the channel summaries (`/v1/releases/{stable,beta}`) |
+
+`.env.production` holds the production values; `.env.example` documents them. Override them in the environment for a preview build. The site only links to the platform; it never calls it and never reads a session. The download section is the one runtime request: the browser reads the center's public channel summaries to show versions and checksums ([services/updates](../../services/updates/README.md)).
+
+## Images
+
+`scripts/build-assets.mjs` derives every image from files already in the repository; nothing is fetched or hotlinked:
+
+- `public/backdrops/flowers-*.webp` and `public/og.jpg` from `assets/backdrops/pink-motion.jpg` ("Pink flowers with motion blur effect" by Raphael Nicolas, Unsplash License). The hero uses this photograph.
+- `public/backdrops/tour-<chapter>-800.webp`, one 4:5 crop per feature-tour chapter. Two chapters crop `gladiolus.jpg`; the other three use their own photograph in `assets/backdrops/`.
+- `public/blog/<slug>/cover.webp`, a 4:3 cover for each post, from the same directory.
+- Every photograph is credited on `/credits/`. These files are separate from the desktop app's backdrop.
+- `public/brand/*.png`, and the mark composited onto `public/og.jpg`, from `apps/desktop/resources/icon.png`.
+
+## Temporary vendored design code
+
+`@astrafoundry/design` is not published yet. Until it is, the site carries a minimal copy of the Sunbeam tokens and beUI components from `lyra-landing`. Each piece is replaced by the package and must not grow in the meantime:
+
+| Path | Source |
+| --- | --- |
+| `src/app/styles/sunbeam.css` | `lyra-landing` Sunbeam tokens, without the canvas and info tokens |
+| `src/shared/beui/components/motion/text-reveal.tsx` | beUI text animation; local change: U+200B separates units, and reduced motion settles the full final state |
+| `src/shared/beui/components/motion/theme-toggle.tsx`, `action-swap.tsx` | beUI, unchanged |
+| `src/shared/beui/lib/ease.ts`, `utils.ts` | beUI helpers |
+| `src/app/fonts.ts` | `lyra-landing` font setup (Fraunces, IBM Plex Sans, JetBrains Mono) |
+
+beUI is MIT licensed (Saurabh Chauhan); the typefaces are OFL. Both are credited on `/credits/`.

@@ -1,0 +1,474 @@
+{
+  "version": 1,
+  "scope": "Offline macOS universal and Windows x64 full-Pinyin engine with build-only private SDKs",
+  "engine": {
+    "name": "librime",
+    "version": "1.17.0",
+    "commit": "33e78140250125871856cdc5b42ddc6a5fcd3cd4",
+    "license": "BSD-3-Clause",
+    "schema": "arion_pinyin",
+    "architectures": [
+      "arm64",
+      "x86_64"
+    ]
+  },
+  "archives": {
+    "runtime": {
+      "url": "https://github.com/rime/librime/releases/download/1.17.0/rime-33e7814-macOS-universal.tar.bz2",
+      "sha256": "11d8dc663c6ec06d5ccb6111ba664a9e7b631b703ac6acd07cffbac664021850",
+      "sizeBytes": 3999581
+    },
+    "dependencies": {
+      "url": "https://github.com/rime/librime/releases/download/1.17.0/rime-deps-33e7814-macOS-universal.tar.bz2",
+      "sha256": "dfe6047e87be271963d7466bd1a6e3d9e660c30e5e73e4bb94e8782c0a6ac8df",
+      "sizeBytes": 3197132
+    },
+    "source": {
+      "url": "https://codeload.github.com/rime/librime/tar.gz/33e78140250125871856cdc5b42ddc6a5fcd3cd4",
+      "sha256": "d3f48c2c58f718402229031d8d95fde9cac07ababa8fecf7d18b91946f27fee6",
+      "sizeBytes": 2653260
+    },
+    "boost": {
+      "url": "https://archives.boost.io/release/1.89.0/source/boost_1_89_0.tar.gz",
+      "sha256": "9de758db755e8330a01d995b0a24d09798048400ac25c03fc5ea9be364b13c93",
+      "sizeBytes": 190099283
+    }
+  },
+  "files": [
+    {
+      "url": "https://raw.githubusercontent.com/rime/rime-pinyin-simp/0c6861ef7420ee780270ca6d993d18d4101049d0/pinyin_simp.schema.yaml",
+      "sha256": "726772190a325ae4bf236915e7d62a23fedd8cf1da8a74370a20f87196c67775",
+      "sizeBytes": 1917,
+      "to": "data/pinyin_simp.schema.yaml",
+      "license": "Apache-2.0",
+      "source": "https://github.com/rime/rime-pinyin-simp/tree/0c6861ef7420ee780270ca6d993d18d4101049d0"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/rime/rime-pinyin-simp/0c6861ef7420ee780270ca6d993d18d4101049d0/pinyin_simp.dict.yaml",
+      "sha256": "e341598343a0f0f2035bb1aafc34a7f3bb7887deeecb3f60796262aaa2983e6b",
+      "sizeBytes": 1266216,
+      "to": "data/pinyin_simp.dict.yaml",
+      "license": "Apache-2.0",
+      "source": "https://github.com/rime/rime-pinyin-simp/tree/0c6861ef7420ee780270ca6d993d18d4101049d0"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/rime/rime-pinyin-simp/0c6861ef7420ee780270ca6d993d18d4101049d0/LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "sizeBytes": 11358,
+      "to": "licenses/rime-pinyin-simp-LICENSE",
+      "license": "Apache-2.0",
+      "source": "https://github.com/rime/rime-pinyin-simp/tree/0c6861ef7420ee780270ca6d993d18d4101049d0"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/rime/rime-pinyin-simp/0c6861ef7420ee780270ca6d993d18d4101049d0/README.md",
+      "sha256": "bc51038baf2408cc5ec9eba680634cfd4ec07f905a636644839daff1a94055c9",
+      "sizeBytes": 255,
+      "to": "licenses/rime-pinyin-simp-README.md",
+      "license": "Apache-2.0",
+      "source": "https://github.com/rime/rime-pinyin-simp/tree/0c6861ef7420ee780270ca6d993d18d4101049d0"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/rime/rime-prelude/082425ea0684bca36474415d4a0e8db9b016487e/default.yaml",
+      "sha256": "0628ada16651d56c4cdfcb8e45ddba23d4d585cc8be0580a62c4e077c0bcc141",
+      "sizeBytes": 1593,
+      "to": "data/default.yaml",
+      "license": "LGPL-3.0",
+      "source": "https://github.com/rime/rime-prelude/tree/082425ea0684bca36474415d4a0e8db9b016487e"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/rime/rime-prelude/082425ea0684bca36474415d4a0e8db9b016487e/key_bindings.yaml",
+      "sha256": "ee2476598b4cae89068b823868196eb07b5f72007a600814fe5804b39008b3ed",
+      "sizeBytes": 3117,
+      "to": "data/key_bindings.yaml",
+      "license": "LGPL-3.0",
+      "source": "https://github.com/rime/rime-prelude/tree/082425ea0684bca36474415d4a0e8db9b016487e"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/rime/rime-prelude/082425ea0684bca36474415d4a0e8db9b016487e/punctuation.yaml",
+      "sha256": "d6f89592149098f0a2d0ed3e5c83f49adb6226cdf1d967b0bc0d293f4e5c496a",
+      "sizeBytes": 2107,
+      "to": "data/punctuation.yaml",
+      "license": "LGPL-3.0",
+      "source": "https://github.com/rime/rime-prelude/tree/082425ea0684bca36474415d4a0e8db9b016487e"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/rime/rime-prelude/082425ea0684bca36474415d4a0e8db9b016487e/symbols.yaml",
+      "sha256": "6d08969525bd66c67abf1791c99928079356bd0e673386c49c1959d2a52fdbba",
+      "sizeBytes": 28473,
+      "to": "data/symbols.yaml",
+      "license": "LGPL-3.0",
+      "source": "https://github.com/rime/rime-prelude/tree/082425ea0684bca36474415d4a0e8db9b016487e"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/rime/rime-prelude/082425ea0684bca36474415d4a0e8db9b016487e/LICENSE",
+      "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768",
+      "sizeBytes": 7651,
+      "to": "licenses/rime-prelude-LICENSE",
+      "license": "LGPL-3.0",
+      "source": "https://github.com/rime/rime-prelude/tree/082425ea0684bca36474415d4a0e8db9b016487e"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/rime/rime-prelude/082425ea0684bca36474415d4a0e8db9b016487e/AUTHORS",
+      "sha256": "9296a3509f1bcaee9e316ff70fccf76bf3a1f19c089b795710808ea5b6a0e6e7",
+      "sizeBytes": 142,
+      "to": "licenses/rime-prelude-AUTHORS",
+      "license": "LGPL-3.0",
+      "source": "https://github.com/rime/rime-prelude/tree/082425ea0684bca36474415d4a0e8db9b016487e"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/rime/librime/33e78140250125871856cdc5b42ddc6a5fcd3cd4/LICENSE",
+      "sha256": "f67d27a6d2d586fcfed4b4c886a83747095396a39b6641e18e855086be2ec400",
+      "sizeBytes": 1513,
+      "to": "licenses/librime-LICENSE",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/rime/librime/tree/33e78140250125871856cdc5b42ddc6a5fcd3cd4"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/google/glog/7b134a5c82c0c0b5698bb6bf7a835b230c5638e4/COPYING",
+      "sha256": "136d48dea7a681413691f3db3098f6cf5ffaa3119d96d97bb83b8cff3ce38c4a",
+      "sizeBytes": 1479,
+      "to": "licenses/glog-COPYING",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/google/glog/tree/7b134a5c82c0c0b5698bb6bf7a835b230c5638e4"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/google/leveldb/99b3c03b3284f5886f9ef9a4ef703d57373e61be/LICENSE",
+      "sha256": "ccc19f1da0798ed666609b65a5b44dd8b3abe6fc08b9c0592eb76e82e174db19",
+      "sizeBytes": 1484,
+      "to": "licenses/leveldb-LICENSE",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/google/leveldb/tree/99b3c03b3284f5886f9ef9a4ef703d57373e61be"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/s-yata/marisa-trie/3e87d53b78e15f2f43783d5e376561a8c9722051/COPYING.md",
+      "sha256": "edf58dab34c3dc239ba4ba2d5d3d844d8c5b442aa4dd1149fac81b2d8c6cb8d1",
+      "sizeBytes": 2275,
+      "to": "licenses/marisa-trie-COPYING.md",
+      "license": "BSD-2-Clause OR LGPL-2.1-or-later",
+      "source": "https://github.com/s-yata/marisa-trie/tree/3e87d53b78e15f2f43783d5e376561a8c9722051"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/BYVoid/OpenCC/556ed22496d650bd0b13b6c163be9814637970ae/LICENSE",
+      "sha256": "b534e465949558eec2597b04f5092b5e161236a68dfbfd04d547592ac3964308",
+      "sizeBytes": 9165,
+      "to": "licenses/opencc-LICENSE",
+      "license": "Apache-2.0",
+      "source": "https://github.com/BYVoid/OpenCC/tree/556ed22496d650bd0b13b6c163be9814637970ae"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/jbeder/yaml-cpp/2f86d13775d119edbb69af52e5f566fd65c6953b/LICENSE",
+      "sha256": "aa6fcc27be034e41e21dd832f9175bfe694a48491d9e14ff0fa278e19ad14f1b",
+      "sizeBytes": 1061,
+      "to": "licenses/yaml-cpp-LICENSE",
+      "license": "MIT",
+      "source": "https://github.com/jbeder/yaml-cpp/tree/2f86d13775d119edbb69af52e5f566fd65c6953b"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/rime/librime/33e78140250125871856cdc5b42ddc6a5fcd3cd4/.github/workflows/macos-build.yml",
+      "sha256": "d02d927e55013b267485e6e4a0bdb05f952721fb7868881bc2993901f4bce7e5",
+      "sizeBytes": 2853,
+      "to": "licenses/librime-macos-build.yml",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/rime/librime/tree/33e78140250125871856cdc5b42ddc6a5fcd3cd4"
+    },
+    {
+      "path": "scripts/licenses/GPL-3.0.txt",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "sizeBytes": 35149,
+      "to": "licenses/GPL-3.0.txt",
+      "license": "GPL-3.0",
+      "source": "https://www.gnu.org/licenses/gpl-3.0.txt"
+    },
+    {
+      "path": "apps/desktop/ime/shared/ranking_unicode_LICENSE.txt",
+      "sha256": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96",
+      "sizeBytes": 1995,
+      "to": "licenses/ranking-unicode-LICENSE.txt",
+      "license": "Unicode-3.0",
+      "source": "https://www.unicode.org/license.txt"
+    },
+    {
+      "path": "apps/desktop/ime/shared/ranking_unicode_sources.json",
+      "sha256": "b76a2ecbb0b470758344ec1ca997d60a54003831a604a4b87bed28d237b55a1c",
+      "sizeBytes": 1601,
+      "to": "licenses/ranking-unicode-sources.json",
+      "license": "Unicode-3.0",
+      "source": "https://www.unicode.org/Public/17.0.0/ucd/"
+    },
+    {
+      "path": "apps/desktop/ime/shared/emoji_sources.json",
+      "sha256": "3ff27758cde6e488854100ef446415dec1818982c41ad49ed40c94c4044fae64",
+      "sizeBytes": 1097,
+      "to": "licenses/emoji-sources.json",
+      "license": "Unicode-3.0",
+      "source": "https://github.com/unicode-org/cldr/tree/release-48-2/common/annotations"
+    },
+    {
+      "path": "scripts/data/english/frequencywords/en_50k.txt",
+      "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/525f9b560de45753a5ea01069454e72e9aa541c6/content/2018/en/en_50k.txt",
+      "sha256": "5351ff405b1126ef555791dd4d9798a48e3e9a501a9fc481a9da957752cfb458",
+      "sizeBytes": 622749,
+      "to": "licenses/frequencywords/en_50k.txt",
+      "license": "CC-BY-SA-4.0",
+      "source": "https://github.com/hermitdave/FrequencyWords/tree/525f9b560de45753a5ea01069454e72e9aa541c6"
+    },
+    {
+      "path": "scripts/data/english/frequencywords/README.md",
+      "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/525f9b560de45753a5ea01069454e72e9aa541c6/README.md",
+      "sha256": "a92fcc50e27f7b2d5860ec1c1ce794dc4c892d945bfa4c8c3136cdfd213ee710",
+      "sizeBytes": 913,
+      "to": "licenses/frequencywords/README.md",
+      "license": "CC-BY-SA-4.0",
+      "source": "https://github.com/hermitdave/FrequencyWords/tree/525f9b560de45753a5ea01069454e72e9aa541c6"
+    },
+    {
+      "path": "scripts/data/english/frequencywords/CC-BY-SA-4.0.txt",
+      "url": "https://raw.githubusercontent.com/spdx/license-list-data/f715b3660bb164c3d0b81cba9ce94e3c558c4048/text/CC-BY-SA-4.0.txt",
+      "sha256": "cde7883b9050a1104f4ac19a1572aafd6e5d7323b68351aaf51fbf4beba54966",
+      "sizeBytes": 18375,
+      "to": "licenses/frequencywords/CC-BY-SA-4.0.txt",
+      "license": "CC-BY-SA-4.0",
+      "source": "https://creativecommons.org/licenses/by-sa/4.0/"
+    },
+    {
+      "path": "scripts/data/english/esdb/Copyright",
+      "sha256": "71bffd4b74ad47fff01c8b3c666e77da92737854e568850d8728024e0a53f304",
+      "sizeBytes": 4903,
+      "to": "licenses/esdb/Copyright",
+      "license": "ESDB-notice",
+      "source": "https://github.com/en-wl/wordlist/tree/1e5b7d3a72f47a71da5d28686c1dd4b397178485"
+    },
+    {
+      "path": "scripts/data/english/esdb/README.md",
+      "sha256": "a1438f294f6fd8801690e35ae2145b84916a4b12a59d1b132a3beaad4d274a76",
+      "sizeBytes": 37896,
+      "to": "licenses/esdb/README.md",
+      "license": "ESDB-notice",
+      "source": "https://github.com/en-wl/wordlist/tree/1e5b7d3a72f47a71da5d28686c1dd4b397178485"
+    },
+    {
+      "path": "scripts/data/english/esdb/words-70.txt",
+      "sha256": "9ec9a8b309e6210fee6dcbeded3e81975cb1eb69f9a27160e263c3d9b5230cc1",
+      "sizeBytes": 1681055,
+      "to": "licenses/esdb/words-70.txt",
+      "license": "ESDB-notice",
+      "source": "https://github.com/en-wl/wordlist/tree/1e5b7d3a72f47a71da5d28686c1dd4b397178485",
+      "english": "esdb"
+    },
+    {
+      "path": "scripts/data/english/cspell/companies/LICENSE",
+      "sha256": "6245ecd81789d113a600fa0e4f5f503e6d1b4f425860f6047dc945560dfcf13c",
+      "sizeBytes": 1124,
+      "to": "licenses/cspell/companies/LICENSE",
+      "license": "MIT",
+      "source": "https://github.com/streetsidesoftware/cspell-dicts/tree/ae9c8d4dc15024377cc64b21d77ce863a35e0c9d/dictionaries/companies/LICENSE"
+    },
+    {
+      "path": "scripts/data/english/cspell/companies/src/README.md",
+      "sha256": "2a9d29e75bf5123cd7483e44a4323193c14db4b3de7208f36b18170ce533d5f8",
+      "sizeBytes": 105,
+      "to": "licenses/cspell/companies/src/README.md",
+      "license": "MIT",
+      "source": "https://github.com/streetsidesoftware/cspell-dicts/tree/ae9c8d4dc15024377cc64b21d77ce863a35e0c9d/dictionaries/companies/src/README.md"
+    },
+    {
+      "path": "scripts/data/english/cspell/companies/src/companies.txt",
+      "sha256": "44ac45eee5b9478536cb08e29c2c1008cc0fb10095ef4ad9f6ec7a8de65a545d",
+      "sizeBytes": 39740,
+      "to": "licenses/cspell/companies/src/companies.txt",
+      "license": "MIT",
+      "source": "https://github.com/streetsidesoftware/cspell-dicts/tree/ae9c8d4dc15024377cc64b21d77ce863a35e0c9d/dictionaries/companies/src/companies.txt",
+      "english": "cspell"
+    },
+    {
+      "path": "scripts/data/english/cspell/software-terms/LICENSE",
+      "sha256": "6245ecd81789d113a600fa0e4f5f503e6d1b4f425860f6047dc945560dfcf13c",
+      "sizeBytes": 1124,
+      "to": "licenses/cspell/software-terms/LICENSE",
+      "license": "MIT",
+      "source": "https://github.com/streetsidesoftware/cspell-dicts/tree/ae9c8d4dc15024377cc64b21d77ce863a35e0c9d/dictionaries/software-terms/LICENSE"
+    },
+    {
+      "path": "scripts/data/english/cspell/software-terms/src/README.md",
+      "sha256": "a267b40f9fc8db030ebae069722b799f2c7e94af1a17e41989f8621363eb5fd0",
+      "sizeBytes": 2097,
+      "to": "licenses/cspell/software-terms/src/README.md",
+      "license": "MIT",
+      "source": "https://github.com/streetsidesoftware/cspell-dicts/tree/ae9c8d4dc15024377cc64b21d77ce863a35e0c9d/dictionaries/software-terms/src/README.md"
+    },
+    {
+      "path": "scripts/data/english/cspell/software-terms/src/coding-terms.txt",
+      "sha256": "5f9f1a401e83006543d7ea4470591f1bb003d41ed8e43155115f3dc0c3b71598",
+      "sizeBytes": 13932,
+      "to": "licenses/cspell/software-terms/src/coding-terms.txt",
+      "license": "MIT",
+      "source": "https://github.com/streetsidesoftware/cspell-dicts/tree/ae9c8d4dc15024377cc64b21d77ce863a35e0c9d/dictionaries/software-terms/src/coding-terms.txt",
+      "english": "cspell"
+    },
+    {
+      "path": "scripts/data/english/cspell/software-terms/src/computing-acronyms.txt",
+      "sha256": "5ad1c671d8f9212b6f5c1c169f19f21e480c98b34a763f9f6ed0995ad6d63ff3",
+      "sizeBytes": 1380,
+      "to": "licenses/cspell/software-terms/src/computing-acronyms.txt",
+      "license": "MIT",
+      "source": "https://github.com/streetsidesoftware/cspell-dicts/tree/ae9c8d4dc15024377cc64b21d77ce863a35e0c9d/dictionaries/software-terms/src/computing-acronyms.txt",
+      "english": "cspell"
+    },
+    {
+      "path": "scripts/data/english/cspell/software-terms/src/cybersecurity-terms.txt",
+      "sha256": "1c00c6015c5d7970e763756ecc7cfafc1a50eb98f44f544309bdd3c234cb0b45",
+      "sizeBytes": 329,
+      "to": "licenses/cspell/software-terms/src/cybersecurity-terms.txt",
+      "license": "MIT",
+      "source": "https://github.com/streetsidesoftware/cspell-dicts/tree/ae9c8d4dc15024377cc64b21d77ce863a35e0c9d/dictionaries/software-terms/src/cybersecurity-terms.txt",
+      "english": "cspell"
+    },
+    {
+      "path": "scripts/data/english/cspell/software-terms/src/network-os.txt",
+      "sha256": "75749b9e90aea3ffaaa51535ad4f3d9b96610f68577cc5ef612a388687ceb9c9",
+      "sizeBytes": 122,
+      "to": "licenses/cspell/software-terms/src/network-os.txt",
+      "license": "MIT",
+      "source": "https://github.com/streetsidesoftware/cspell-dicts/tree/ae9c8d4dc15024377cc64b21d77ce863a35e0c9d/dictionaries/software-terms/src/network-os.txt",
+      "english": "cspell"
+    },
+    {
+      "path": "scripts/data/english/cspell/software-terms/src/network-protocols.txt",
+      "sha256": "b2b8f0f0cb21dce4b6c26ed8b044dc99b1ebae5e95e85bfff520265e8874f0eb",
+      "sizeBytes": 356,
+      "to": "licenses/cspell/software-terms/src/network-protocols.txt",
+      "license": "MIT",
+      "source": "https://github.com/streetsidesoftware/cspell-dicts/tree/ae9c8d4dc15024377cc64b21d77ce863a35e0c9d/dictionaries/software-terms/src/network-protocols.txt",
+      "english": "cspell"
+    },
+    {
+      "path": "scripts/data/english/cspell/software-terms/src/software-services.txt",
+      "sha256": "4125c5bd54e9435111dcb3d9c4f00b2998f391ea6421aac057287e5d23c6ff1f",
+      "sizeBytes": 363,
+      "to": "licenses/cspell/software-terms/src/software-services.txt",
+      "license": "MIT",
+      "source": "https://github.com/streetsidesoftware/cspell-dicts/tree/ae9c8d4dc15024377cc64b21d77ce863a35e0c9d/dictionaries/software-terms/src/software-services.txt",
+      "english": "cspell"
+    },
+    {
+      "path": "scripts/data/english/cspell/software-terms/src/software-terms.txt",
+      "sha256": "b48e669314a91f6ef4ad3f8797bc51aa0292dd41300bc2082a49316c8cdfa251",
+      "sizeBytes": 22603,
+      "to": "licenses/cspell/software-terms/src/software-terms.txt",
+      "license": "MIT",
+      "source": "https://github.com/streetsidesoftware/cspell-dicts/tree/ae9c8d4dc15024377cc64b21d77ce863a35e0c9d/dictionaries/software-terms/src/software-terms.txt",
+      "english": "cspell"
+    },
+    {
+      "path": "scripts/data/english/cspell/software-terms/src/software-tools.txt",
+      "sha256": "dc9036b00cf72b0881274207e3a9802c4b840c4560c14d43994b919cfaf47aa3",
+      "sizeBytes": 6241,
+      "to": "licenses/cspell/software-terms/src/software-tools.txt",
+      "license": "MIT",
+      "source": "https://github.com/streetsidesoftware/cspell-dicts/tree/ae9c8d4dc15024377cc64b21d77ce863a35e0c9d/dictionaries/software-terms/src/software-tools.txt",
+      "english": "cspell"
+    },
+    {
+      "path": "scripts/data/english/esdb/docs/sources.md",
+      "sha256": "f6469057a011888e4eaefc3f7886a3da21c57c0c3383a076a5eb04a05f044387",
+      "sizeBytes": 14627,
+      "to": "licenses/esdb/docs/sources.md",
+      "license": "ESDB-notice",
+      "source": "https://github.com/en-wl/wordlist/blob/1e5b7d3a72f47a71da5d28686c1dd4b397178485/docs/sources.md"
+    },
+    {
+      "path": "scripts/data/english/esdb/docs/comp-60.txt",
+      "sha256": "188760a8c926c1c748a95ab1344d8dbfa876d631089c582ef0c0cc253877c74f",
+      "sizeBytes": 35501,
+      "to": "licenses/esdb/docs/comp-60.txt",
+      "license": "ESDB-notice",
+      "source": "https://github.com/en-wl/wordlist/blob/1e5b7d3a72f47a71da5d28686c1dd4b397178485/docs/comp-60.txt"
+    },
+    {
+      "path": "scripts/data/english/cspell/software-terms/src/software-terms-legacy.txt",
+      "url": "https://raw.githubusercontent.com/streetsidesoftware/cspell-dicts/ae9c8d4dc15024377cc64b21d77ce863a35e0c9d/dictionaries/software-terms/src/software-terms-legacy.txt",
+      "sha256": "ecae9afb634c0b1466fb01f1ec8025981c3c37c4e0eca9f1b434fc0a759846a0",
+      "sizeBytes": 497,
+      "to": "licenses/cspell/software-terms/src/software-terms-legacy.txt",
+      "license": "MIT",
+      "source": "https://raw.githubusercontent.com/streetsidesoftware/cspell-dicts/ae9c8d4dc15024377cc64b21d77ce863a35e0c9d/dictionaries/software-terms/src/software-terms-legacy.txt",
+      "english": "cspell"
+    }
+  ],
+  "windows": {
+    "architectures": [
+      "x86_64"
+    ],
+    "toolchain": "MinGW-w64 GCC C++17; build the engine and private adapters with the same compiler",
+    "logging": false,
+    "dependencies": {
+      "leveldb": {
+        "url": "https://codeload.github.com/google/leveldb/tar.gz/99b3c03b3284f5886f9ef9a4ef703d57373e61be",
+        "revision": "99b3c03b3284f5886f9ef9a4ef703d57373e61be",
+        "sha256": "bc87b9bbc5674c91246a89813355e78401759761342cc049e1c3d56350a8a9d1",
+        "sizeBytes": 243094,
+        "directory": "leveldb-99b3c03b3284f5886f9ef9a4ef703d57373e61be"
+      },
+      "marisa": {
+        "url": "https://codeload.github.com/s-yata/marisa-trie/tar.gz/3e87d53b78e15f2f43783d5e376561a8c9722051",
+        "revision": "3e87d53b78e15f2f43783d5e376561a8c9722051",
+        "sha256": "c24516edc43be8049ef4e23e50a574d4670036fe3595c49c0f01d4d87ce58f57",
+        "sizeBytes": 212943,
+        "directory": "marisa-trie-3e87d53b78e15f2f43783d5e376561a8c9722051"
+      },
+      "yaml": {
+        "url": "https://codeload.github.com/jbeder/yaml-cpp/tar.gz/2f86d13775d119edbb69af52e5f566fd65c6953b",
+        "revision": "2f86d13775d119edbb69af52e5f566fd65c6953b",
+        "sha256": "923b2298148581b14ef21d9ce29d83eca102ff671a547dfdbd227245a199bcd8",
+        "sizeBytes": 1050633,
+        "directory": "yaml-cpp-2f86d13775d119edbb69af52e5f566fd65c6953b"
+      },
+      "opencc": {
+        "url": "https://codeload.github.com/BYVoid/OpenCC/tar.gz/556ed22496d650bd0b13b6c163be9814637970ae",
+        "revision": "556ed22496d650bd0b13b6c163be9814637970ae",
+        "sha256": "2792fc0944359c5d099bd79e08bfffce250bf3760aa0ec306e975cc58314482a",
+        "sizeBytes": 3424904,
+        "directory": "OpenCC-556ed22496d650bd0b13b6c163be9814637970ae"
+      }
+    },
+    "files": [
+      {
+        "url": "https://raw.githubusercontent.com/Tencent/rapidjson/v1.1.0/license.txt",
+        "sha256": "a140e5d46fe734a1c78f1a3c3ef207871dd75648be71fdda8e309b23ab8b1f32",
+        "sizeBytes": 5152,
+        "to": "licenses/rapidjson-LICENSE",
+        "license": "MIT",
+        "source": "https://github.com/Tencent/rapidjson/tree/v1.1.0"
+      }
+    ]
+  },
+  "english": {
+    "name": "ESDB 70 and CSpell",
+    "version": 4,
+    "frequencies": "licenses/frequencywords/en_50k.txt",
+    "export": {
+      "commit": "1e5b7d3a72f47a71da5d28686c1dd4b397178485",
+      "archive": {
+        "url": "https://codeload.github.com/en-wl/wordlist/tar.gz/1e5b7d3a72f47a71da5d28686c1dd4b397178485",
+        "sha256": "aaecc7a54af576057e30b22a19b78bad011f2181f7e368ff3b736fbecbdfd4d0",
+        "sizeBytes": 2314429
+      },
+      "root": "wordlist-1e5b7d3a72f47a71da5d28686c1dd4b397178485",
+      "arguments": [
+        "word-list",
+        "70",
+        "A,B,Z",
+        "1"
+      ],
+      "output": "scripts/data/english/esdb/words-70.txt"
+    },
+    "cspellCommit": "ae9c8d4dc15024377cc64b21d77ce863a35e0c9d"
+  },
+  "patches": {
+    "correctionIdentity": {
+      "version": 1,
+      "originalSha256": "477bc49a5349da2be6bef8424f6ad95293720f2b152f4b2717c8535a49aaaf2d",
+      "patchedSha256": "4de326710260d7934442ce57a2bf032152de0b2f0a78cde4f41a3c1a8e156f21"
+    }
+  }
+}

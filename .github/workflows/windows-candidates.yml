@@ -1,0 +1,35 @@
+name: Windows candidate checks
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidates:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          path-type: inherit
+          install: mingw-w64-ucrt-x86_64-gcc
+      - name: Check phrase state and Windows HTTP transport
+        shell: msys2 {0}
+        run: node scripts/test-shadowinput-candidates.mjs
+      - name: Check native candidate rendering and mouse acceptance
+        shell: msys2 {0}
+        run: node scripts/test-windows-candidates.mjs
+      - name: Retain synthetic candidate rendering evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-candidate-evidence
+          path: .workspace/tests/windows-candidates/*.bmp
+          if-no-files-found: ignore
