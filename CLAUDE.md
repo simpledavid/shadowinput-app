@@ -31,8 +31,8 @@ For shadowinput code changes and reviews, follow the [ub-mode coding rules](docs
 - The active public repository is `simpledavid/shadowinput-app`; `main` is the integration branch. Read [migration and provenance](docs/project/shadowinput-repository.md) before changing source/release links.
 - Product entry points are `apps/desktop/cmd/shadowinput`, `apps/extension`, and `apps/shadowinput-site`. Retained Arion modules and historical documents are implementation references, not additional shadowinput requirements.
 - Do not require access to AstraFoundry's private evaluation repository. Preserve references to inherited evidence as historical, and record new local checks separately.
-- Old releases remain in `simpledavid/shadowinput-desktop`. Never relabel them as builds of this repository.
-- The included Windows candidate workflow runs only on explicit dispatch and has read-only repository permissions. Upstream release/deployment workflows are not installed here.
+- The published desktop preview.6 and browser preview.3 assets are migrated unchanged to this repository. Their tags are exact source snapshots without inherited parents. Preserve original build provenance; do not describe these archives as new builds.
+- The included Windows candidate workflow runs only on explicit dispatch and has read-only repository permissions. Upstream release/deployment workflows are absent from main and are not used for migrated archives.
 
 ## Documentation map
 

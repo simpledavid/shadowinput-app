@@ -25,7 +25,7 @@ Verify the preview, then publish to the existing production branch:
 npx wrangler@4 pages deploy public --project-name shadowinput --branch claude/initial-setup-Pt7FD
 ```
 
-The unusual production branch name belongs to the existing Pages project. Its Git source remains the older `simpledavid/ShadowInput` repository. Automatic production and preview builds are disabled to prevent that repository from overwriting this website; updates use Wrangler. This folder is the maintained website source in `simpledavid/shadowinput-desktop`.
+The unusual production branch name belongs to the existing Pages project. Its Git source remains the older `simpledavid/ShadowInput` repository. Automatic production and preview builds are disabled to prevent that repository from overwriting this website; updates use Wrangler. This folder is the maintained website source in `simpledavid/shadowinput-app`.
 
 This site has no Pages Functions or database access. Existing project bindings and old deployment history are retained. For rollback, use the Pages deployment history; the production deployment immediately before the desktop-site replacement was `fc092367-198a-4c32-aac3-fbff2f21f1f8`.
 

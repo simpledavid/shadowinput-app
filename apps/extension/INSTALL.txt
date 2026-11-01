@@ -26,4 +26,4 @@ choose Continue with ChatGPT, and authorize on OpenAI's page. Select a model,
 enter text, and translate. Sign-in/model discovery have manual evidence; completed translation remains pending.
 After updating, reload the extension and refresh the webpage to replace its content script.
 Credentials remain in this Chrome profile; browser local storage is not an OS keychain.
-Source: https://github.com/simpledavid/shadowinput-desktop/tree/main/apps/extension
+Source: https://github.com/simpledavid/shadowinput-app/tree/main/apps/extension
