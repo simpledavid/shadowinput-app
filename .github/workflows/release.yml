@@ -1,0 +1,97 @@
+name: Release
+
+# Tagged releases run the same checks and packaging as pull requests.
+# Only complete, verified sets are staged in release storage and a GitHub draft;
+# publishing a channel stays a manual decision in the AstraFoundry admin.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      native-matrix: ${{ steps.matrix.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Validate tag, repository, update key and Apple signing configuration
+        env:
+          MYGO_UPDATER_PRIVATE_KEY: ${{ secrets.MYGO_UPDATER_PRIVATE_KEY }}
+          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_IME_PROVISIONING_PROFILE_BASE64: ${{ secrets.MACOS_IME_PROVISIONING_PROFILE_BASE64 }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          ARION_RELEASES_S3_ENDPOINT: ${{ secrets.ARION_RELEASES_S3_ENDPOINT }}
+          ARION_RELEASES_S3_REGION: ${{ secrets.ARION_RELEASES_S3_REGION }}
+          ARION_RELEASES_S3_BUCKET: ${{ secrets.ARION_RELEASES_S3_BUCKET }}
+          ARION_RELEASES_S3_PREFIX: ${{ secrets.ARION_RELEASES_S3_PREFIX }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.ARION_RELEASES_S3_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.ARION_RELEASES_S3_SECRET_ACCESS_KEY }}
+        run: node scripts/release.mjs check
+      - name: Select release platforms
+        id: matrix
+        run: echo "value=$(node scripts/release.mjs matrix)" >> "$GITHUB_OUTPUT"
+
+  checks:
+    needs: preflight
+    uses: ./.github/workflows/ci.yml
+    with:
+      release: true
+      # One-release exemption: these E2E checks were completed before tagging.
+      skip-e2e: ${{ github.ref == 'refs/tags/v0.1.0-alpha.17' }}
+      native-matrix: ${{ needs.preflight.outputs.native-matrix }}
+    secrets:
+      MYGO_UPDATER_PRIVATE_KEY: ${{ secrets.MYGO_UPDATER_PRIVATE_KEY }}
+      MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+      MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      MACOS_IME_PROVISIONING_PROFILE_BASE64: ${{ secrets.MACOS_IME_PROVISIONING_PROFILE_BASE64 }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+
+  draft-release:
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          merge-multiple: true
+          path: .workspace/release/verified
+      - name: Verify the complete release and write SHA256SUMS
+        run: node scripts/release.mjs verify .workspace/release/verified
+      - name: Stage verified assets in release storage
+        env:
+          ARION_RELEASES_S3_ENDPOINT: ${{ secrets.ARION_RELEASES_S3_ENDPOINT }}
+          ARION_RELEASES_S3_REGION: ${{ secrets.ARION_RELEASES_S3_REGION }}
+          ARION_RELEASES_S3_BUCKET: ${{ secrets.ARION_RELEASES_S3_BUCKET }}
+          ARION_RELEASES_S3_PREFIX: ${{ secrets.ARION_RELEASES_S3_PREFIX }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.ARION_RELEASES_S3_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.ARION_RELEASES_S3_SECRET_ACCESS_KEY }}
+        run: |
+          aws configure set default.s3.addressing_style virtual
+          node scripts/release.mjs stage .workspace/release/verified
+      - name: Upload verified assets to a draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/release.mjs upload .workspace/release/verified
