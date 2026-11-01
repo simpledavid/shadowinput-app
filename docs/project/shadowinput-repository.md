@@ -1,6 +1,6 @@
 # shadowinput repository
 
-The active project is [simpledavid/shadowinput-app](https://github.com/simpledavid/shadowinput-app), on `main`. It contains the input method, desktop writing tool, Chrome translation extension and Chinese website. Its initial commit is a source snapshot, with no inherited Git parent or tag history.
+The active project is [simpledavid/shadowinput-app](https://github.com/simpledavid/shadowinput-app), on `main`. It contains the input method, desktop writing tool, Chrome translation extension and Chinese website. Its main history starts with an independent source snapshot. Migrated release tags are separate parentless source snapshots; they do not add upstream commits to main.
 
 ## Provenance and compatibility
 
@@ -12,9 +12,11 @@ Internal Go module names, input-method identifiers, local preference paths and s
 
 ## Downloads and publication
 
-The old repository remains available for immutable desktop `v0.1.0-preview.6` and browser `browser-v0.1.0-preview.3` assets and their corresponding source archives. Existing website download links are preserved. They do not include the new candidate-label/click fix. Website source and current-documentation links now target shadowinput-app. New packages produced here embed this repository's source URL and exact revision.
+Desktop `v0.1.0-preview.6` and browser `browser-v0.1.0-preview.3` are preserved in [this repository's releases](https://github.com/simpledavid/shadowinput-app/releases). All original asset bytes, SHA-256 checksums and embedded build metadata are unchanged. The desktop archive does not include the newer candidate-label/click fix. Each migrated tag points to an independent commit with the exact original source tree and no parents; GitHub source downloads and the original attached source archives remain available without importing upstream history.
 
-The inherited Arion CI, release and signed-macOS workflows were removed from the new repository. They depended on upstream infrastructure and are not shadowinput release automation. The only installed workflow is the explicitly dispatched [Windows candidate check](../../.github/workflows/windows-candidates.yml), with read-only repository permissions, no account credentials and synthetic test text.
+The old GitHub repository is retired from distribution and its owner requested deletion. Its Git refs/history and release metadata were saved locally before removal. Existing local checkouts and cached historical packages remain intact. Website, current documentation and future package source links use shadowinput-app. Source URLs embedded in unchanged old packages may reference the former repository; use the migrated release's corresponding source archive or tag instead.
+
+The inherited Arion CI, release and signed-macOS workflows were removed from the new repository. They depended on upstream infrastructure and are not shadowinput release automation. On main, the only installed workflow is the explicitly dispatched [Windows candidate check](../../.github/workflows/windows-candidates.yml), with read-only repository permissions, no account credentials and synthetic test text. Historical tags preserve upstream workflow files as part of their exact source trees; their archive commits use `[skip ci]` and are not used as the current release pipeline.
 
 ## Verification
 
