@@ -1,4 +1,5 @@
 #include "continuation.h"
+#include <cstring>
 #include <stdexcept>
 #include <string>
 #include <iostream>
