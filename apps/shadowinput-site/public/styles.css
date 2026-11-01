@@ -640,7 +640,9 @@ kbd {
   color:var(--muted);
 }
 .key-row kbd {
-  width:34px;
+  min-width:34px;
+  flex-shrink:0;
+  white-space:nowrap;
   height:33px;
   font-size:15px;
 }
@@ -1653,7 +1655,7 @@ kbd {
   }
   .key-row kbd {
     height:28px;
-    width:29px;
+    min-width:29px;
     font-size:12px;
   }
   .mini-document {
