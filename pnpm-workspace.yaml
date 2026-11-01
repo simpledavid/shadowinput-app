@@ -1,0 +1,11 @@
+packages:
+  - apps/site
+  - tools/driver
+
+packageManagerStrict: true
+packageManagerStrictVersion: true
+
+# Native install scripts allowed to run: wrangler's local runtime and bundler.
+onlyBuiltDependencies:
+  - esbuild
+  - workerd

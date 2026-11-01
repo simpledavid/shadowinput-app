@@ -1,0 +1,90 @@
+.workspace/
+.env
+.env.*
+!.env.example
+!/apps/site/.env.production
+node_modules/
+dist/
+build/
+out/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+.wrangler/
+*.log
+*.tmp
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Native artifacts and private evaluation material
+*.onnx
+*.gguf
+*.safetensors
+*.wav
+*.pcm
+*.dylib
+*.dll
+*.exe
+*.app/
+*.db
+*.db-wal
+*.db-shm
+
+# Generated native permission localizations (source: shared copy catalogs)
+/apps/desktop/resources/darwin/*.lproj/
+
+# Update signing keys never enter the repository.
+mygo-update.key
+*.p12
+*.p8
+
+# Generated Python evaluation bytecode
+__pycache__/
+*.pyc
+
+# Staged LLM worker and runtime (scripts/stage-llm-runtime.mjs).
+/apps/desktop/resources/*/llm/
+/apps/desktop/resources/licenses/
+
+# Reviewed benchmark research fixtures and historical experiment logs.
+!/benchmarks/corpora/**/*.wav
+!/benchmarks/corpora/**/*.pcm
+!/benchmarks/runs/**/*.log
+!/benchmarks/reproduction/**/*.log
+
+# Staged offline keyboard engine and compiled schema data.
+/apps/desktop/resources/darwin/keyboard/
+/apps/desktop/resources/windows-amd64/keyboard/
+
+# Generated Windows TSF service and payload manifest.
+/apps/desktop/resources/windows-amd64/ime/
+/apps/desktop/resources/shadowinput/
+/apps/desktop/cmd/shadowinput/icon_windows_amd64.syso
+
+# Regenerated aggregate reports exceed GitHub blob limits; sources remain archived.
+/benchmarks/results/rewrite-release/data.json
+/benchmarks/results/rewrite-release/index.html
+/deploy/center/secrets/
+
+# Native ASR staging and Swift build state.
+/apps/desktop/resources/*/asr/
+/apps/desktop/native/mlx-asr/.build/
+/apps/desktop/native/mlx-asr/.swiftpm/
+
+# Anatomy skill examples: generated pages and printed sheets, rebuilt by
+# each example's build.mjs
+.claude/skills/anatomy/examples/**/*.html
+.claude/skills/anatomy/examples/**/*.pdf
+
+# Go test binaries from profiling
+*.test
+
+# Product smoke audio remains independently testable.
+!/apps/desktop/e2e/testdata/*.wav
+
+# Full research archives belong to the private evaluation repository.
+/benchmarks/

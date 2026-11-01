@@ -1,0 +1,62 @@
+# 005 Privacy and trust boundaries
+
+| Data | Default lifetime/location | Sync/log policy |
+| --- | --- | --- |
+| Clipboard history | Off until enabled; bounded AES-GCM snapshot with a distinct OS-kept key; ordinary files are references; input-target dictation excluded, confirmed no-input copies eligible while enabled | Never sync/log, feed polishing or upload; see [010](010-clipboard.md) |
+| Raw audio/PCM | Bounded RAM for active session | Never sync/log; disk recording requires separate user action |
+| ASR/correction drafts | Active session RAM | Never diagnostics; history separately opt-in |
+| Target app/nearby/selected text | Bounded consent-gated session context | Never sync/log or persist automatically |
+| Approved vocabulary/correction/preferences | Encrypted local values, including pairs learned from the user's corrections with their use counts. Preferences may also keep the last signed-in account subject, display name and email for the Settings card; they are not tokens | Client-encrypted sync only when enabled |
+| Keyboard composition | Active native session RAM | No raw key history, logs or sync |
+| Confirmed keyboard word learning | Separate authenticated encrypted userdb snapshots; this-device Keychain key | Explicit reset/delete; encrypted backups only; no account sync |
+| Usage counts | Per-day numbers in `usage.json`: sessions, speaking time, words and words per rewrite scene; no text, app, host or time of day | Local Overview is always available; only explicitly consented, signed-in daily aggregates may be reported as PRV-10 |
+| Group/device keys and auth tokens | OS credential store | Never logs/config/export without explicit protected flow |
+| Models | Per-user verified model cache | Public artifact downloads only; no speech payload |
+| Cloud polishing credential | One OS credential item: an API key, or the ChatGPT refresh token, account ID and email | Never logs/config/export/sync; deleted on disconnect |
+| App updates | Signed archive replaces the installed app | Channel manifest and archive downloads from the Arion center (`api.arion.astrafoundry.si`) only; no content payload; checks can be turned off |
+| Product notifications | OS-authorized signed-in inbox; title/body in transient memory; private account-hashed cold-action ledger | Account service holds targeted notice/receipt metadata; OS receives bounded notice text; no speech, tokens or notice bodies in diagnostics/ledger; no quit-time push |
+| Performance diagnostics | Local content-free metrics | No remote telemetry enabled by this foundation |
+
+PRV-01: Dictation and ranking have no cloud inference route. The one exception is cloud polishing, which the user chooses explicitly ([ADR 022](../docs/decisions/022-cloud-polishing.md), CLD-01–05): the shared spelling stage may send the final source, its scene, recalled terms, earlier recognized source and enabled cursor/screen/history context to the connected provider ([ADR 024](../docs/decisions/024-shared-polishing-pipeline.md)); audio never leaves the device. The formatter receives only the edited source and scene/script profile. Model downloads, encrypted sync (self-hosted or hosted), account sign-in ([ADR 015](../docs/decisions/015-hosted-relay-account-authorization.md)) and cloud polishing are separately enabled surfaces; test their destinations and payload classes.
+
+PRV-07: Update checks request only the platform manifest of the selected channel and its archive from the configured center update URL ([ADR 019](../docs/decisions/019-center-update-channels.md)); the channel (`stable` or `beta`) is the only query value. They carry no audio, text, vocabulary, preference or device identifier, run only while the user's automatic-check preference is on or on an explicit request, and an archive whose Ed25519 signature does not match the built-in key is never installed ([ADR 010](../docs/decisions/010-in-app-updates.md)). The persisted Allow beta updates switch defaults to off; enabling it selects the `beta` channel, which includes published prereleases but never staged or withdrawn releases. Switching channels invalidates old check results. An empty channel is reported without a connection error.
+
+PRV-02: Context read is limited to the focused application/field and bounded text under each source's switch ([ADR 013](../docs/decisions/013-rewrite-context-on-device.md)): text around the cursor, visible system-accessibility text of the captured window only (no screenshot or OCR) and recent dictations in memory. No full-screen or background capture, keystroke history or full document scraping. Secure/unknown fields disable reads/learning. User denylist overrides per-app preferences. While learning from corrections is on ([ADR 014](../docs/decisions/014-edit-learning.md)), the field Arion inserted into is re-read, as a bounded excerpt around its cursor, until the user stops editing it (at most 60 s); only the learned word pairs are kept, encrypted with the vocabulary.
+
+PRV-03: Before using personal memory, disclose its type/scope and allow reset/export/delete. Session-only memory is never promoted automatically. Disabling sync does not imply deletion of already stored relay ciphertext; expose deletion separately.
+
+PRV-04: A vetted authenticated encryption provider must fail closed on key/tag errors. OS key stores protect local keys; encryption protects persisted sensitive values including SQLite WAL/backups by encrypting before SQL writes. Full database encryption versus field encryption is an implementation decision that must account for metadata leakage.
+
+Keyboard learning specifically requires the macOS Data Protection Keychain with non-synchronizable `AfterFirstUnlockThisDeviceOnly` accessibility, verified from returned OS attributes. Missing policy attributes, missing signing entitlements and existing legacy keys fail explicitly; there is no automatic backend migration or replacement key. The host requires a provisioning profile authorizing its Data Protection Keychain application identifier ([ADR 017](../docs/decisions/017-offline-pinyin-keyboard.md)). A profile-authorized signed harness passes the real-key lifecycle and returned-attribute checks on the recorded Mac. Actual installed-host behavior and physical migration/backup behavior remain separate acceptance scopes.
+
+PRV-05: Log only random correlation IDs, coarse capability/model IDs, numeric durations, queue depth and error codes. Exclude audio/transcripts, vocabulary, app window titles, selected text, clipboard, filesystem user paths, prompts and secrets. Failure bundles are opt-in and locally inspectable. Settings › About exports only the bounded, schema-validated local JSONL logs and a version/platform manifest; no preferences, usage, vocabulary, models, raw stderr or crash dumps. Logs rotate at 2 MiB and UTC day boundaries, retaining at most five files and seven days; export never uploads them.
+
+Input-source lifecycle diagnostics may additionally retain Arion's two fixed source IDs, its process ID, operation/stage enums, native status numbers and state flags, installed-bundle presence and executable SHA-256. Other selected sources are represented only by a coarse category, never their IDs or application identity. These observations do not include keyboard input or editor contents. Unknown identities and nested fields are rejected on ingestion/export; unchanged periodic observations are sampled out.
+
+PRV-06: A relay operator, self-hosted or hosted, can observe timing, IP/device/group routing metadata and ciphertext sizes; the hosted relay also knows which account subject owns a tenant, never its keys. E2EE does not conceal all metadata or protect against a compromised endpoint. Document backup, key recovery, device revocation and deletion limits before enabling sync.
+
+PRV-08: Usage counts record a session only after its commit completes. They hold calendar-day totals keyed by date and by scene name, never dictated text, bundle IDs, hosts or per-session timestamps, so they cannot reconstruct what was said or where.
+
+PRV-09: Account sign-in runs when the user starts it ([account sign-in](../docs/project/account-signin.md)). The access token stays in process memory. The refresh token is its own OS credential item. Sign-out revokes that item and deletes it. The last signed-in subject, display name and email may be stored in `preferences.json` so Settings can show the profile after a restart; they are cleared on sign-out or when restoration ends the session. The vocabulary encryption key stays. Failures shown in the UI are a code and a content-free detail.
+
+PRV-10: Usage reporting requires the current version of explicit account consent.
+Only commits made while signed in and consented enter the upload ledger; no prior
+local history or signed-out activity is backfilled. Reports include daily visit,
+session, microphone-time and word totals, a product slug and a random identifier
+scoped to an account and installation. They contain no audio, dictated text,
+scene, application identity, URL or per-session timestamp. The platform receives
+account-linked aggregates and an arrival time. Pending snapshots persist for at
+most 31 days, without tokens. Sign-out/account changes cancel sending; the server
+checks consent for every write and rejects revoked consent even with an old JWT.
+
+## Acceptance
+
+PRV-A01: offline capture/rank/correction generates no content network traffic; PRV-A02: artifact/log scan excludes synthetic sensitive canaries; PRV-A03: cancel/restart leaves no temporary PCM files; PRV-A04: relay backup contains ciphertext only; PRV-A05: denylist/password/unknown field blocks context; PRV-A06: lost keys cannot silently create plaintext data or replace old encrypted records; PRV-A07: with automatic checks off, or in the offline profile, the app makes no update request, and a tampered update archive is rejected. PRV-A08: a cancelled, silent or failed session adds no usage, and the usage file holds only dates, counts and scene names (`TestUsageMeterCountsCommittedSessions`, `TestUsageRoundTrip`). PRV-A09: constructing the account service performs no network I/O (`TestNewDoesNotUseTheNetwork`); sign-out removes the refresh token and leaves vocabulary-key material in place (`TestSignOutDoesNotDeleteLocalKeys`, `TestRefreshItemIsNotTheVocabularyKey`).
+
+PRV-A10: diagnostic ZIP tests inject sensitive transcript/prompt/context/path/token canaries and unrelated profile files; none appear in exported entries or metadata. Unknown/corrupt log fields and symlink sources fail explicitly without publishing an archive (`TestExportExcludesSensitiveCanaries`, `TestExportRejectsTamperedLogWithoutPublishing`, `TestExportDoesNotFollowLogSymlinks`).
+
+
+PRV-10: Signed-in, OS-authorized product notifications contact the configured standard account issuer with the in-memory access token and product/notice receipt identifiers. `received` is OS submission and explicit read/action/dismiss events are distinct. The private local ledger retains account hashes and action metadata, never raw subject, title/body, credentials or dictation content. Notices and receipt timing are ordinary account-service metadata, not encrypted memory sync. Signed-out, OS-denied, offline and custom profiles make no product-notification request; fully exited applications receive notices on next authenticated launch ([ADR 026](../docs/decisions/026-account-product-notifications.md)).
+
+
+Personal vocabulary IPC uses the authenticated local connection in [ADR 030](../docs/decisions/030-keyboard-vocabulary-transport.md). On macOS each endpoint must verify the peer’s kernel audit-token identity, equal effective user, expected code identifier and matching Developer ID publisher derived from its own validated signature. A capability or build string is not identity evidence. Pin the signing requirement for subsequent connection checks. Refuse private-content IPC for ad-hoc or mismatched publishers; standalone offline keyboard conversion must not depend on an app connection. Positive signed-pair and installed-host acceptance remain release gates.

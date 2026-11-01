@@ -1,0 +1,35 @@
+{
+  "name": "Arion",
+  "identifier": "si.astrafoundry.arion",
+  "version": "0.1.0-alpha.20",
+  "copyright": "AstraFoundry",
+  "urlSchemes": [
+    "arion"
+  ],
+  "out": "build",
+  "updates": {
+    "publicKey": "WEZ2tNHPgq2KP405pHaCZU7hxPtss2P9lQ7nFqP7evk=",
+    "url": "https://api.arion.astrafoundry.si/v1/updates"
+  },
+  "release": {
+    "product": "arion",
+    "repository": "AstraFoundry/Arion"
+  },
+  "windows": {
+    "notifications": true
+  },
+  "macos": {
+    "minimumSystemVersion": "14.0",
+    "entitlements": "entitlements.plist",
+    "infoPlist": {
+      "NSMicrophoneUsageDescription": "Arion listens only while you dictate. Speech is recognized on this Mac.",
+      "LSUIElement": true,
+      "LSApplicationCategoryType": "public.app-category.productivity",
+      "CFBundleDevelopmentRegion": "en",
+      "CFBundleLocalizations": [
+        "en",
+        "zh-Hans"
+      ]
+    }
+  }
+}
