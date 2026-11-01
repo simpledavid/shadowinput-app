@@ -22,6 +22,8 @@ The phrase fix removes the left AI prefix and retains a trailing Tab arrow. Wind
 
 Before migration, macOS AppKit continuation tests, shared state tests, both IME component builds, Windows candidate cross-compilation and `node scripts/shadowinput.mjs check` passed. These results do not establish installed Windows behavior. Crapper, Dryer and Mutator were not available and were not run.
 
+The [hosted Windows candidate run](https://github.com/simpledavid/shadowinput-app/actions/runs/41315563624) subsequently passed on Windows Server 2022: committed-word context and expiry, cancellation and stale requests, native WinHTTP transport, candidate rendering, unnumbered mouse selection identity and retained editor focus. The first run exposed a missing `<cstring>` include in the context fixture; Windows GCC reproduced it, and the explicit header fixed compilation. These synthetic native checks do not establish installed TSF registration, real editor compatibility or local-model inference.
+
 On an actual Windows host with Node and MinGW-w64 GCC on PATH, run:
 
 ```sh
