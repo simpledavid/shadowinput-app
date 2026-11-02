@@ -1,6 +1,6 @@
 # shadowinput 系统输入法预览
 
-主入口为系统输入法设置，复用 Arion 的 Rime 拼音引擎、macOS InputMethodKit 宿主及 Windows TSF 服务。目标是从系统输入菜单切换后直接打字，普通词语上屏后出现独立 AI 短语联想。官网的 v0.1.0-preview.7 已包含该实现，提供 DMG 和 EXE 下载；完整系统输入验收仍待完成，不能视为已经可替代微信输入法的成品。
+主入口为系统输入法设置，复用 Arion 的 Rime 拼音引擎、macOS InputMethodKit 宿主及 Windows TSF 服务。目标是从系统输入菜单切换后直接打字，普通词语上屏后出现独立 AI 短语联想。官网的 v0.1.0-preview.9 已包含该实现与 4M 拼音排序，提供 DMG 和 EXE 下载；完整系统输入验收仍待完成，不能视为已经可替代微信输入法的成品。
 
 ## 使用流程
 
@@ -32,7 +32,7 @@ node scripts/test-shadowinput-ranking.mjs
 
 Windows staging 参数改为 `windows-amd64`；最后一项是 macOS 专用的真实 Rime / HTTP / 模型 / NSTextView 夹具。Windows 的同一真实模型脚本、候选状态及 WinHTTP 测试由手动触发的 `Windows candidate checks` 工作流执行。它们不能代替已安装 TSF 在微信中的实际键盘验收。
 
-本轮已验证：无前文排序、两条请求路径互不取消、关闭及过期结果拒绝、退出与启动交错不死锁；真实 4M 的合成选词、保留词库首选、拒绝不同覆盖范围和损坏权重；macOS 原生完整请求到空格上屏、旧修订拒绝。单个合成选词在本机约 2 毫秒，不是准确率或尾延迟基准。该实现不保证“部门”之后出现续写，也不构成 Windows 微信兼容性修复。
+本轮已验证：无前文排序、两条请求路径互不取消、关闭及过期结果拒绝、退出与启动交错不死锁；真实 4M 的合成选词、保留词库首选、拒绝不同覆盖范围和损坏权重；macOS 原生完整请求到空格上屏、旧修订拒绝。单个合成选词在本机约 2 毫秒，不是准确率或尾延迟基准。Windows 原生 CI 已通过真实 4M 推理、候选窗口、WinHTTP 请求和取消验证，见 [运行记录](https://github.com/simpledavid/shadowinput-app/actions/runs/41441037667)。该实现不保证“部门”之后出现续写，也不构成 Windows 微信兼容性修复。
 
 ## 错误恢复和更新
 

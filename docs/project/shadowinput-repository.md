@@ -12,7 +12,7 @@ Internal Go module names, input-method identifiers, local preference paths and s
 
 ## Downloads and publication
 
-The current desktop download is preview.7, built from clean commit `e807fcfa` in this repository. It includes the candidate-label and Windows phrase-click fixes. The prior migrated preview.6 remains unchanged for rollback and historical source access.
+The current desktop download is preview.9, built from clean commit `a00d5b1b` in this repository. It adds a bundled 4M Pinyin ranker independent of Qwen continuation and fixes white corners in rounded brand icons, retaining the earlier candidate-label and Windows phrase-click fixes. See the [input-method guide](shadowinput-ime.md#本地候选排序) for verified behavior and remaining acceptance limits. Earlier releases remain unchanged for rollback and historical source access.
 
 Desktop `v0.1.0-preview.6` and browser `browser-v0.1.0-preview.3` are preserved in [this repository's releases](https://github.com/simpledavid/shadowinput-app/releases). All original asset bytes, SHA-256 checksums and embedded build metadata are unchanged. The migrated preview.6 desktop archive does not include the newer candidate-label/click fix. Each migrated tag points to an independent commit with the exact original source tree and no parents; GitHub source downloads and the original attached source archives remain available without importing upstream history.
 
