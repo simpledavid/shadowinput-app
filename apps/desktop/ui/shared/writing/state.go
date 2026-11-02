@@ -71,7 +71,7 @@ func (s *State) CanGenerate() bool {
 }
 
 func (s *State) CanSuggest() bool {
-	return s.AICandidates && s.ProfileReady && !s.Busy && !s.Settings && s.Local.State == "ready" && !s.Local.Busy
+	return s.AICandidates && s.ProfileReady && !s.Busy && !s.Settings
 }
 
 // Actions are supplied by the composition root. Views never access credentials.

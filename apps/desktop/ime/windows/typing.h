@@ -63,6 +63,7 @@ class Typing {
         clearAI();
         if (composition || ascii || !continuationAnchor) return;
         ai.update(shadow_context_text(&continuation,GetTickCount64()),revision);
+        ai.poll(revision);
     }
     HRESULT commitAI(TfEditCookie cookie,bool &handled) {
         if(!shadowAIEnabled() || aiText.empty() || aiRevision!=revision || !sameContinuation(cookie)) return S_FALSE;
@@ -239,6 +240,7 @@ class Typing {
 public:
 #ifdef SHADOWINPUT_IME
     void setAIPanel(CandidateWindow *value){aiPanel=value;}
+    void notifyPhrases(HWND window,UINT message){ai.notify(window,message);}
     bool sameContinuation(TfEditCookie cookie) {
         if(composition || !context || !continuationAnchor || !*shadow_context_text(&continuation,GetTickCount64()))return false;
         TF_SELECTION selected{};ULONG count=0;LONG start=1,end=1;bool valid=false;

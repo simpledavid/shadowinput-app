@@ -23,7 +23,7 @@ class ShadowCandidateState {
     const ShadowRequestKind kind;
     std::mutex mutex;
     bool alive=true;
-    uint64_t revision=0,started=0,changed=0;
+    uint64_t revision=0,started=0;
     std::string source;
     std::wstring result;
     std::shared_ptr<ShadowCandidateRequest> current;
@@ -33,16 +33,16 @@ class ShadowCandidateState {
     }
 public:
     explicit ShadowCandidateState(ShadowRequestKind kind=ShadowRequestKind::Phrase):kind(kind) {}
-    void update(const std::string &text,uint64_t version,uint64_t now) {
+    void update(const std::string &text,uint64_t version) {
         std::lock_guard<std::mutex> lock(mutex);
         revoke();
-        source=text;revision=version;changed=now;result.clear();
+        source=text;revision=version;result.clear();
     }
-    std::shared_ptr<ShadowCandidateRequest> begin(uint64_t version,uint64_t now) {
+    std::shared_ptr<ShadowCandidateRequest> begin(uint64_t version) {
         std::lock_guard<std::mutex> lock(mutex);
         if(!alive || version!=revision || current || started==revision || source.empty())return {};
         if(kind==ShadowRequestKind::Ranking) { if(source.size()>32768)return {}; }
-        else if(shadow_runes(source.c_str())<2 || shadow_runes(source.c_str())>ShadowContextRunes || now-changed<ShadowDebounceMS)return {};
+        else if(shadow_runes(source.c_str())<2 || shadow_runes(source.c_str())>ShadowContextRunes)return {};
         started=revision;
         current=std::make_shared<ShadowCandidateRequest>(revision,source,kind);
         return current;

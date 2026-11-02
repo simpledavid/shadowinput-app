@@ -32,6 +32,7 @@ static constexpr UINT Learn = WM_APP + 43;
 static constexpr UINT Layout = WM_APP + 44;
 #ifdef SHADOWINPUT_IME
 static constexpr UINT RankReady = WM_APP + 45;
+static constexpr UINT PhraseReady = WM_APP + 46;
 #endif
 // Protocol 2 requires PRIVATE/password/PIN rejection before composition.
 static constexpr unsigned WireProtocol=2;
@@ -148,7 +149,7 @@ class Service final : public ITfTextInputProcessorEx, public ITfThreadMgrEventSi
         if (message == Learn) { std::unique_ptr<LearnCommit> value(reinterpret_cast<LearnCommit*>(lp)); if (value->generation==self->keyboard.generation()) self->keyboard.learn(value->commit,value->previous,self->typing->rankingFailure); return 0; }
 #ifdef SHADOWINPUT_IME
         if(message==RankReady){self->receiveLocalRanking();return 0;}
-        if(message==WM_TIMER && wp==3){if(self->focused && self->typing->observing()){TypingCommand check;check.kind=TypingCommand::Inspect;self->keyRequest(check);}return 0;}
+        if(message==PhraseReady || (message==WM_TIMER && wp==3)){if(self->focused && self->typing->observing()){TypingCommand check;check.kind=TypingCommand::Inspect;self->keyRequest(check);}return 0;}
 #endif
         if (message == WM_TIMER && wp==2) { self->badge.hide(); KillTimer(window,2); return 0; }
         if (message == WM_TIMER) { self->refreshSettings(); self->connect(); if (!self->session.empty()) { WireMessage check; check.op=L"inspect"; check.activation=self->activation; check.session=self->session; self->request(check); } if (self->typing->composing()) { TypingCommand check; check.kind=TypingCommand::Inspect; self->keyRequest(check); } if (self->languageBar) self->languageBar->changed(); return 0; }
@@ -577,6 +578,7 @@ public:
         }
 #ifdef SHADOWINPUT_IME
         fastRanking.notify(window,RankReady);
+        typing->notifyPhrases(window,PhraseReady);
         SetTimer(window,3,150,nullptr);
 #endif
         languageBar=new LanguageBar([this] { return menuState(); },[this](KeyboardMenuAction action) { menuCommand(action); });

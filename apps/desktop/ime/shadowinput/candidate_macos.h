@@ -32,11 +32,9 @@ static BOOL shadowAIEnabled(void) { return shadowEndpointEnabled(@"candidate"); 
  if (!source || shadow_runes(source.UTF8String)<2 || shadow_runes(source.UTF8String)>ShadowContextRunes) return;
  NSUInteger generation=self.generation;
  __weak ShadowCandidate *weak=self;
- dispatch_after(dispatch_time(DISPATCH_TIME_NOW,ShadowDebounceMS*NSEC_PER_MSEC),dispatch_get_main_queue(),^{
-  ShadowCandidate *owner=weak; if (!owner || owner.generation!=generation) return;
   NSMutableURLRequest *request=shadowLocalRequest(@"candidate",@"candidate",[source dataUsingEncoding:NSUTF8StringEncoding]);
   if(!request)return;
-  owner.task=[owner.session dataTaskWithRequest:request completionHandler:^(NSData *data,NSURLResponse *response,NSError *error) {
+  self.task=[self.session dataTaskWithRequest:request completionHandler:^(NSData *data,NSURLResponse *response,NSError *error) {
    if (error || ![response isKindOfClass:NSHTTPURLResponse.class] || ((NSHTTPURLResponse *)response).statusCode!=200 || data.length>1024) return;
    NSString *text=[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
    if (!text.length || shadow_runes(text.UTF8String)>ShadowSuffixRunes || [text rangeOfCharacterFromSet:NSCharacterSet.controlCharacterSet].location!=NSNotFound) return;
@@ -45,7 +43,6 @@ static BOOL shadowAIEnabled(void) { return shadowEndpointEnabled(@"candidate"); 
     live.text=text; live.task=nil; if (live.ready) live.ready();
    });
   }];
-  [owner.task resume];
- });
+  [self.task resume];
 }
 @end
