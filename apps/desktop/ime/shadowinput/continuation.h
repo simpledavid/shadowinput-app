@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 
-enum { ShadowDebounceMS=180, ShadowContextLifetimeMS=30000, ShadowContextRunes=128, ShadowSuffixRunes=24 };
+enum { ShadowContextLifetimeMS=30000, ShadowContextRunes=128, ShadowSuffixRunes=24 };
 
 // Only this input method's committed text, never surrounding document contents.
 // The platform owns the caret anchor; this value owns bounded, expiring UTF-8.

@@ -10,7 +10,7 @@ import (
 	state "arion.local/desktop/ui/shared/writing"
 	"context"
 	"github.com/egoist/mygo"
-	"strings"
+	"time"
 )
 
 func (a *app) initInputMethod() {
@@ -24,38 +24,68 @@ func (a *app) initInputMethod() {
 	_ = server.SetEnabled(a.s.CanSuggest())
 	a.s.IMEStatus = shadowime.Status()
 }
-func (a *app) candidate(ctx context.Context, text string) (string, error) {
-	type snapshot struct {
-		request   domain.WritingRequest
-		generator ports.WritingGenerator
+
+type phrasePlan struct {
+	phrase    string
+	request   domain.WritingRequest
+	generator ports.WritingGenerator
+}
+
+// Called on the UI owner; the returned request owns a copy of user preferences.
+func (a *app) planPhrase(text string) phrasePlan {
+	if a.quitting || !a.s.CanSuggest() {
+		return phrasePlan{}
 	}
-	ready := make(chan snapshot, 1)
+	if phrase := domain.SuggestInputPhrase(text, a.s.Profile.Terms); phrase != "" {
+		return phrasePlan{phrase: phrase}
+	}
+	if !domain.ModelPhraseEligible(text) || a.local == nil || !a.local.Ready() || a.s.Local.Busy {
+		return phrasePlan{}
+	}
+	request := domain.WritingRequest{Task: domain.TaskCompletePhrase, Text: text, Model: rewriting.DefaultModel, Terms: append([]string(nil), a.s.Profile.Terms...)}
+	if style, ok := a.s.Profile.Style(a.s.StyleID); ok {
+		request.Style = &style
+	}
+	return phrasePlan{request: request, generator: localwriting.Generator{Chat: a.local}}
+}
+
+func (a *app) candidate(ctx context.Context, text string) (string, error) {
+	ready := make(chan phrasePlan, 1)
 	a.onMain(func() {
-		s := snapshot{}
-		if ctx.Err() == nil && !a.quitting && a.s.CanSuggest() && a.local != nil && a.local.Ready() {
-			s.request = domain.WritingRequest{Task: domain.TaskCompletePhrase, Text: text, Model: rewriting.DefaultModel, Terms: append([]string(nil), a.s.Profile.Terms...)}
-			if style, ok := a.s.Profile.Style(a.s.StyleID); ok {
-				s.request.Style = &style
-			}
-			s.generator = localwriting.Generator{Chat: a.local}
+		if ctx.Err() != nil {
+			ready <- phrasePlan{}
+			return
 		}
-		ready <- s
+		ready <- a.planPhrase(text)
 	})
-	var s snapshot
+	var s phrasePlan
 	select {
 	case s = <-ready:
 	case <-ctx.Done():
 		return "", ctx.Err()
 	}
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+	if s.phrase != "" {
+		return s.phrase, nil
+	}
 	if s.generator == nil {
 		return "", inputcandidate.ErrUnavailable
+	}
+	// Only inference waits for quiet typing. Dictionary suggestions return at once.
+	timer := time.NewTimer(180 * time.Millisecond)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+	case <-ctx.Done():
+		return "", ctx.Err()
 	}
 	result, err := s.generator.Generate(ctx, s.request, nil)
 	if err != nil {
 		return "", err
 	}
-	result = strings.TrimSpace(result)
-	if !inputcandidate.ValidResult(text, result) {
+	if !domain.ValidGeneratedPhrase(text, result) {
 		return "", inputcandidate.ErrUnavailable
 	}
 	return result, nil

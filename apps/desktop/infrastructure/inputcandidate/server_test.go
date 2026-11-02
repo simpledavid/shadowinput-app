@@ -110,6 +110,25 @@ func TestRejectRepeatedBoundaryAndAssistantReplies(t *testing.T) {
 	}
 }
 
+func TestPersonalTermSpacingSurvivesTransport(t *testing.T) {
+	s, err := Start(t.TempDir(), func(context.Context, string) (string, error) { return " Alpha", nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	req, _ := http.NewRequest("POST", "http://"+s.address+"/candidate", strings.NewReader("项目"))
+	req.Header.Set("Authorization", "Bearer "+s.token)
+	r, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Body.Close()
+	body, err := io.ReadAll(r.Body)
+	if err != nil || r.StatusCode != 200 || string(body) != " Alpha" {
+		t.Fatalf("personal term altered in transit: %q status=%d err=%v", body, r.StatusCode, err)
+	}
+}
+
 func TestDisabledCandidateServiceRemovesDiscoveryAndRejectsSavedCapability(t *testing.T) {
 	var calls atomic.Int32
 	s, err := Start(t.TempDir(), func(context.Context, string) (string, error) { calls.Add(1); return "新的候选内容", nil })

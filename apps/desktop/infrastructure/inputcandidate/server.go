@@ -3,6 +3,7 @@
 package inputcandidate
 
 import (
+	"arion.local/core/domain"
 	"context"
 	"crypto/rand"
 	"crypto/subtle"
@@ -15,8 +16,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"unicode"
-	"unicode/utf8"
 )
 
 type Generate func(context.Context, string) (string, error)
@@ -37,9 +36,7 @@ type Server struct {
 // stored with user-only permissions; browsers are refused even with a token.
 func Start(directory string, generate Generate) (*Server, error) {
 	return start(directory, generate, requestPolicy{path: "/candidate", file: "candidate.endpoint", limit: 1024, budget: 2 * time.Second,
-		validInput: func(text string) bool {
-			return utf8.ValidString(text) && strings.IndexFunc(text, unicode.IsControl) < 0 && utf8.RuneCountInString(text) >= 2 && utf8.RuneCountInString(text) <= 128
-		},
+		validInput:  domain.ValidPhraseContext,
 		validResult: ValidResult})
 }
 
@@ -143,7 +140,6 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		s.cancel = nil
 	}
 	s.mu.Unlock()
-	result = strings.TrimSpace(result)
 	if err != nil || ctx.Err() != nil || !current || !s.policy.validResult(text, result) {
 		w.WriteHeader(http.StatusNoContent)
 		return
@@ -151,28 +147,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, result)
 }
 
-func ValidResult(source, result string) bool {
-	return result != "" && !strings.HasPrefix(result, source) && !strings.HasSuffix(source, result) && !repeatedBoundary(source, result) && !assistantReply(result) && utf8.ValidString(result) && utf8.RuneCountInString(result) <= 24 &&
-		strings.IndexFunc(result, unicode.IsControl) < 0 && !strings.Contains(result, "<|") && !strings.Contains(result, "<think")
-}
-
-// Conservative surface checks, not a semantic quality guarantee.
-func repeatedBoundary(source, result string) bool {
-	prefix, suffix := []rune(source), []rune(result)
-	for count := 2; count <= min(len(prefix), len(suffix)); count++ {
-		if string(prefix[len(prefix)-count:]) == string(suffix[:count]) {
-			return true
-		}
-	}
-	return false
-}
-func assistantReply(text string) bool {
-	for _, phrase := range []string{"请提供", "有什么可以帮", "需要我帮", "作为AI", "作为 AI"} {
-		if strings.Contains(text, phrase) {
-			return true
-		}
-	}
-	return false
-}
+// ValidResult is the phrase wire contract shared with the domain selector.
+func ValidResult(source, result string) bool { return domain.ValidPhraseSuffix(source, result) }
 
 var ErrUnavailable = errors.New("AI candidates unavailable")

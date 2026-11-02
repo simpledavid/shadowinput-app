@@ -44,9 +44,9 @@ public:
  explicit ShadowCandidateClient(ShadowRequestKind kind=ShadowRequestKind::Phrase):state(std::make_shared<ShadowCandidateState>(kind)) {}
  void notify(HWND window,UINT message){readyWindow=window;readyMessage=message;}
  ~ShadowCandidateClient(){state->close();}
- void update(const std::string &source,uint64_t revision){state->update(source,revision,GetTickCount64());}
+ void update(const std::string &source,uint64_t revision){state->update(source,revision);}
  std::wstring poll(uint64_t revision){
-  if(auto request=state->begin(revision,GetTickCount64())) {
+  if(auto request=state->begin(revision)) {
    HMODULE module=nullptr;
    if(GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,reinterpret_cast<LPCWSTR>(&work),&module)) {
     auto job=new Work{state,request,module,readyWindow,readyMessage};
