@@ -1,6 +1,6 @@
 # shadowinput 系统输入法预览
 
-主入口为系统输入法设置，复用 Arion 的 Rime 拼音引擎、macOS InputMethodKit 宿主及 Windows TSF 服务。目标是从系统输入菜单切换后直接打字，普通词语上屏后出现独立 AI 短语联想。官网的 v0.1.0-preview.8 已包含该实现与 4M 拼音排序，提供 DMG 和 EXE 下载；完整系统输入验收仍待完成，不能视为已经可替代微信输入法的成品。
+主入口为系统输入法设置，复用 Arion 的 Rime 拼音引擎、macOS InputMethodKit 宿主及 Windows TSF 服务。目标是从系统输入菜单切换后直接打字，普通词语上屏后出现独立 AI 短语联想。官网的 v0.1.0-preview.9 已包含该实现与 4M 拼音排序，提供 DMG 和 EXE 下载；完整系统输入验收仍待完成，不能视为已经可替代微信输入法的成品。
 
 ## 使用流程
 
