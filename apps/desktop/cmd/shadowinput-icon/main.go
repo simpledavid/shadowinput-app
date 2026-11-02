@@ -29,7 +29,10 @@ func main() {
 	images := map[int]*image.RGBA{}
 	pngs := map[int][]byte{}
 	for _, size := range []int{16, 24, 32, 48, 64, 128, 180, 256, 512, 1024} {
-		img := ui.NewTester(func(c *ui.Context) { ui.Image(c, mark).Size(float32(size), float32(size)) }, size, size).Image()
+		img := ui.NewTester(func(c *ui.Context) {
+			c.Root().Background(ui.Transparent)
+			ui.Image(c, mark).Size(float32(size), float32(size))
+		}, size, size).Image()
 		var b bytes.Buffer
 		if err := png.Encode(&b, img); err != nil {
 			log.Fatal(err)
