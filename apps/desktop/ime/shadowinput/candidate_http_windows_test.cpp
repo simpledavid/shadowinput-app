@@ -53,27 +53,31 @@ static void canceledRequestClosesConnection() {
     require(client.get().empty(),"canceled request produced output");
     require(server.get(),"cancellation did not close the HTTP connection");
 }
-static void successfulRequestReturnsBody() {
+static void successfulRequestReturnsBody(ShadowRequestKind kind) {
+    const std::string body=kind==ShadowRequestKind::Ranking?std::string(2048,'x'):"fresh candidate";
     Listener listener;
     auto server=std::async(std::launch::async,[&] {
         SOCKET peer=accept(listener.socket,nullptr,nullptr);
-        if(peer==INVALID_SOCKET)return;
-        char buffer[4096];recv(peer,buffer,sizeof(buffer),0);
-        std::string response="HTTP/1.1 200 OK\r\nContent-Length: 15\r\nConnection: close\r\n\r\nfresh candidate";
+        if(peer==INVALID_SOCKET)return false;
+        char buffer[4096];int count=recv(peer,buffer,sizeof(buffer),0);
+        std::string expected=kind==ShadowRequestKind::Ranking?"POST /rank ":"POST /candidate ";
+        bool route=count>0 && std::string(buffer,count).rfind(expected,0)==0;
+        std::string response="HTTP/1.1 200 OK\r\nContent-Length: "+std::to_string(body.size())+"\r\nConnection: close\r\n\r\n"+body;
         send(peer,response.data(),static_cast<int>(response.size()),0);
-        shutdown(peer,SD_SEND);closesocket(peer);
+        shutdown(peer,SD_SEND);closesocket(peer);return route;
     });
-    auto request=std::make_shared<ShadowCandidateRequest>(2,"synthetic phrase");
+    auto request=std::make_shared<ShadowCandidateRequest>(2,"synthetic phrase",kind);
     ShadowCandidateHTTP transport(request);
-    require(transport.run(listener.port,L"TESTONLYABCDEFGHIJKLMNOP")==L"fresh candidate","normal response failed");
-    server.get();
+    require(transport.run(listener.port,L"TESTONLYABCDEFGHIJKLMNOP")==wide(body),"normal response failed");
+    require(server.get(),"wrong endpoint route");
 }
 int main() {
     WSADATA data{};
     if(WSAStartup(MAKEWORD(2,2),&data)!=0)return 1;
     try {
         canceledRequestClosesConnection();
-        successfulRequestReturnsBody();
+        successfulRequestReturnsBody(ShadowRequestKind::Phrase);
+        successfulRequestReturnsBody(ShadowRequestKind::Ranking);
         std::cout<<"PASS: real loopback WinHTTP cancellation and subsequent response\n";
     }catch(const std::exception &error){std::cerr<<error.what()<<'\n';WSACleanup();return 1;}
     WSACleanup();return 0;

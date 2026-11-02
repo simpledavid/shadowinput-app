@@ -82,7 +82,7 @@ func TestRiskReviewRequiresExplicitAcknowledgment(t *testing.T) {
 func TestWritingScreens(t *testing.T) {
 	for _, locale := range []copy.Locale{copy.English, copy.SimplifiedChinese} {
 		for _, dark := range []bool{false, true} {
-			for _, screen := range []string{"account", "compact", "review", "styles", "recovery", "local-off", "local-progress", "local-ready", "local-error", "local-compact", "input-ready", "input-off", "input-loading"} {
+			for _, screen := range []string{"account", "compact", "review", "styles", "recovery", "local-off", "local-progress", "local-ready", "local-error", "local-compact", "input-ready", "input-off", "input-loading", "input-ranking", "input-rank-error"} {
 				s := state.NewState()
 				s.Provider = state.ProviderChatGPT
 				s.Locale, s.ProfileReady = locale, true
@@ -137,13 +137,22 @@ func TestWritingScreens(t *testing.T) {
 				if strings.HasPrefix(screen, "input-") {
 					s.InputPage = true
 					s.AICandidates = true
+					s.RankingStatus = copy.ShadowRankReady
 					s.Local = state.LocalStatus{Name: "Qwen3.5 2B · Q4_K_M", State: "ready", Installed: true}
 					s.IMEStatus = "shadowinput"
 					if screen == "input-off" {
 						s.AICandidates = false
+						s.RankingStatus = copy.ShadowRankOff
 						s.Local = state.LocalStatus{State: "off", SizeBytes: 1280835840}
 					}
+					if screen == "input-ranking" || screen == "input-rank-error" {
+						s.Local = state.LocalStatus{State: "off", SizeBytes: 1280835840}
+					}
+					if screen == "input-rank-error" {
+						s.RankingStatus = copy.ShadowRankFailed
+					}
 					if screen == "input-loading" {
+						s.RankingStatus = copy.ShadowRankLoading
 						s.Local.State = "loading"
 						s.Local.Busy = true
 					}

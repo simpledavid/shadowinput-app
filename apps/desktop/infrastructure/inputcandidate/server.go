@@ -30,16 +30,33 @@ type Server struct {
 	token, file string
 	http        *http.Server
 	generate    Generate
+	policy      requestPolicy
 }
 
 // Start binds only an OS-assigned loopback port. The per-launch capability is
 // stored with user-only permissions; browsers are refused even with a token.
 func Start(directory string, generate Generate) (*Server, error) {
+	return start(directory, generate, requestPolicy{path: "/candidate", file: "candidate.endpoint", limit: 1024, budget: 2 * time.Second,
+		validInput: func(text string) bool {
+			return utf8.ValidString(text) && strings.IndexFunc(text, unicode.IsControl) < 0 && utf8.RuneCountInString(text) >= 2 && utf8.RuneCountInString(text) <= 128
+		},
+		validResult: ValidResult})
+}
+
+type requestPolicy struct {
+	path, file  string
+	limit       int64
+	budget      time.Duration
+	validInput  func(string) bool
+	validResult func(string, string) bool
+}
+
+func start(directory string, generate Generate, policy requestPolicy) (*Server, error) {
 	listener, err := net.Listen("tcp4", "127.0.0.1:0")
 	if err != nil {
 		return nil, err
 	}
-	s := &Server{enabled: true, address: listener.Addr().String(), token: rand.Text(), file: filepath.Join(directory, "candidate.endpoint"), generate: generate}
+	s := &Server{enabled: true, address: listener.Addr().String(), token: rand.Text(), file: filepath.Join(directory, policy.file), generate: generate, policy: policy}
 	s.http = &http.Server{Handler: http.HandlerFunc(s.serve), ReadHeaderTimeout: time.Second, ReadTimeout: 2 * time.Second, WriteTimeout: 20 * time.Second, IdleTimeout: time.Second, MaxHeaderBytes: 4096}
 	if err = os.MkdirAll(directory, 0700); err == nil {
 		err = os.WriteFile(s.file, []byte(listener.Addr().String()+"\n"+s.token+"\n"), 0600)
@@ -93,18 +110,18 @@ func (s *Server) Close() { s.Revoke(); s.http.Close(); os.Remove(s.file) }
 func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	if r.Method != "POST" || r.URL.Path != "/candidate" || r.Header.Get("Origin") != "" || r.Header.Get("Sec-Fetch-Site") != "" ||
+	if r.Method != "POST" || r.URL.Path != s.policy.path || r.Header.Get("Origin") != "" || r.Header.Get("Sec-Fetch-Site") != "" ||
 		subtle.ConstantTimeCompare([]byte(r.Header.Get("Authorization")), []byte("Bearer "+s.token)) != 1 {
 		http.Error(w, "unavailable", http.StatusForbidden)
 		return
 	}
-	body, err := io.ReadAll(io.LimitReader(r.Body, 1025))
+	body, err := io.ReadAll(io.LimitReader(r.Body, s.policy.limit+1))
 	text := strings.TrimSpace(string(body))
-	if err != nil || len(body) > 1024 || !utf8.Valid(body) || strings.IndexFunc(text, unicode.IsControl) >= 0 || utf8.RuneCountInString(text) < 2 || utf8.RuneCountInString(text) > 128 {
-		http.Error(w, "invalid continuation context", http.StatusBadRequest)
+	if err != nil || int64(len(body)) > s.policy.limit || !s.policy.validInput(text) {
+		http.Error(w, "invalid candidate request", http.StatusBadRequest)
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), s.policy.budget)
 	defer cancel()
 	s.mu.Lock()
 	if !s.enabled {
@@ -127,7 +144,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	}
 	s.mu.Unlock()
 	result = strings.TrimSpace(result)
-	if err != nil || ctx.Err() != nil || !current || !ValidResult(text, result) {
+	if err != nil || ctx.Err() != nil || !current || !s.policy.validResult(text, result) {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}

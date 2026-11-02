@@ -13,6 +13,12 @@ int main(int argc,const char *argv[]){
   ArionTyping *typing=[[ArionTyping alloc] initWithEngine:engine];TypingEditor *editor=[TypingEditor new];
   require(typing.typoCorrection,@"shadowinput defaults to the engine's typo-correction mode");
   require([typing activate:editor error:&error],@"activate real editor");if(typing.ascii)[typing toggleASCII];
+  __block NSDictionary *rankSnapshot=nil;
+  typing.neuralRanking=YES;
+  typing.rankingChanged=^(NSDictionary *snapshot,NSUInteger revision){(void)revision;rankSnapshot=snapshot;};
+  type(typing,@"shijie");
+  require(rankSnapshot!=nil && [rankSnapshot[@"before"] isEqual:@""],@"fast ranking accepts the first composition without preceding text");
+  [typing cancel];typing.neuralRanking=NO;
   type(typing,@"mingtian");
   require(!typing.aiSource.length,@"unfinished Pinyin never starts a model request");
   press(typing,@" ",49);

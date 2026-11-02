@@ -818,9 +818,13 @@
   "ShadowInstallIME": "Install / enable input method",
   "ShadowCandidateKeys": "Space / numbers: commit words · Tab: append AI phrase · Esc: dismiss. Pinyin typo correction is enabled by default.",
   "ShadowAICloud": "ChatGPT is available in the writing tool for explicit polishing and translation. Automatic phrases always use the local model.",
-  "ShadowAILocal": "Commit words normally, then pause briefly for a local AI phrase. Download and start the model once; it stays ready while AI is enabled. Your writing-tool model choice is separate.",
+  "ShadowAILocal": "Enable AI for bundled 4M Pinyin ranking. Download and start Qwen for phrase suggestions after committing words. Both run locally, independently of your writing-tool model choice.",
   "ShadowAIEnable": "Enable automatic AI candidates",
   "ShadowAIDisable": "Disable automatic AI candidates",
   "ShadowAINote": "At least two committed characters are needed. Only recent words typed here, your style and relevant terms reach the local model. Context expires after 30 seconds; nothing is saved or sent to ChatGPT. Tab appends a suggestion without changing your words. Keep typing to dismiss it.",
-  "ShadowWritingTool": "Open long-form writing tool"
+  "ShadowWritingTool": "Open long-form writing tool",
+  "ShadowRankOff": "Pinyin ranking · 4M · Bundled; starts when AI is enabled",
+  "ShadowRankLoading": "Pinyin ranking · 4M · Starting…",
+  "ShadowRankReady": "Pinyin ranking · 4M · Ready",
+  "ShadowRankFailed": "Pinyin ranking · 4M · Unavailable. Toggle AI off and on to retry; ordinary typing remains available."
 }

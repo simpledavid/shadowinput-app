@@ -15,6 +15,7 @@
 
 #ifdef SHADOWINPUT_IME
 #import "../shadowinput/candidate_macos.h"
+#import "../shadowinput/ranking_macos.h"
 #endif
 static NSString *hostBuildIdentity;
 
@@ -40,6 +41,7 @@ static NSString *hostBuildIdentity;
 @property BOOL keyboardReady;
 #ifdef SHADOWINPUT_IME
 @property(strong) ShadowCandidate *ai;
+@property(strong) ShadowRanking *fastRanking;
 #endif
 @property(copy) NSString *dictationKey;
 - (NSDictionary *)activationMessage;
@@ -117,7 +119,10 @@ static NSString *applyKeyboardSettings(ArionTyping *typing, ArionCandidatePanel 
     typing.pageSize = pageSize;
     typing.emojiSuggestions = emojiSuggestions;
     typing.typoCorrection = typoCorrection;
- typing.neuralRanking = neuralRanking;
+#ifdef SHADOWINPUT_IME
+    neuralRanking=YES;
+#endif
+    typing.neuralRanking = neuralRanking;
     typing.fuzzyPinyin = fuzzyPinyin;
     panel.size = size;
     panel.appearance = appearance;
@@ -302,10 +307,21 @@ static NSString *voiceInputTitle(NSString *dictationKey) {
         self.typing = [[ArionTyping alloc] initWithEngine:ArionKeyboardEngine.shared];
         __weak ArionInputController *weakSelf = self;
         self.typing.changed = ^{ [weakSelf refreshCandidates]; };
+#ifdef SHADOWINPUT_IME
+        self.fastRanking=[ShadowRanking new];
+        self.fastRanking.ready=^(NSDictionary *message,NSString *activation){
+            ArionInputController *controller=weakSelf;
+            if([ArionBridge shared].active==controller && [controller.composition.activation isEqual:activation])
+                [controller.typing applyRankingMessage:message activation:activation];
+        };
+#endif
         self.typing.rankingChanged = ^(NSDictionary *snapshot, NSUInteger revision) {
             ArionInputController *controller=weakSelf;
-            ArionBridge *bridge=[ArionBridge shared];
             NSString *activation=controller.composition.activation;
+#ifdef SHADOWINPUT_IME
+            [controller.fastRanking update:snapshot revision:revision activation:activation];
+#else
+            ArionBridge *bridge=[ArionBridge shared];
             if (bridge.fd<0 || bridge.active!=controller || !activation.length || controller.composition.session.length) return;
             NSMutableDictionary *message=[@{@"op":snapshot?@"keyboard_rank":@"keyboard_freeze",
                 @"activation":activation,@"revision":@(revision)} mutableCopy];
@@ -315,6 +331,7 @@ static NSString *voiceInputTitle(NSString *dictationKey) {
                 message[@"rankRequest"]=request;
             }
             [bridge send:message];
+#endif
         };
         self.typing.modeChanged = ^(ArionTypingSwitch change) {
             ArionInputController *controller = weakSelf;

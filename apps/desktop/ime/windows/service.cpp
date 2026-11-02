@@ -30,6 +30,9 @@ static constexpr UINT Incoming = WM_APP + 41;
 static constexpr UINT Disconnected = WM_APP + 42;
 static constexpr UINT Learn = WM_APP + 43;
 static constexpr UINT Layout = WM_APP + 44;
+#ifdef SHADOWINPUT_IME
+static constexpr UINT RankReady = WM_APP + 45;
+#endif
 // Protocol 2 requires PRIVATE/password/PIN rejection before composition.
 static constexpr unsigned WireProtocol=2;
 struct LearnCommit { std::string commit,previous; uint64_t generation=0; };
@@ -118,6 +121,7 @@ class Service final : public ITfTextInputProcessorEx, public ITfThreadMgrEventSi
     CandidateWindow candidates{module};
 #ifdef SHADOWINPUT_IME
     CandidateWindow aiCandidates{module};
+    ShadowCandidateClient fastRanking{ShadowRequestKind::Ranking};
 #endif
     ModeBadge badge{module};
     LanguageBar *languageBar=nullptr;
@@ -143,12 +147,22 @@ class Service final : public ITfTextInputProcessorEx, public ITfThreadMgrEventSi
         }
         if (message == Learn) { std::unique_ptr<LearnCommit> value(reinterpret_cast<LearnCommit*>(lp)); if (value->generation==self->keyboard.generation()) self->keyboard.learn(value->commit,value->previous,self->typing->rankingFailure); return 0; }
 #ifdef SHADOWINPUT_IME
+        if(message==RankReady){self->receiveLocalRanking();return 0;}
         if(message==WM_TIMER && wp==3){if(self->focused && self->typing->observing()){TypingCommand check;check.kind=TypingCommand::Inspect;self->keyRequest(check);}return 0;}
 #endif
         if (message == WM_TIMER && wp==2) { self->badge.hide(); KillTimer(window,2); return 0; }
         if (message == WM_TIMER) { self->refreshSettings(); self->connect(); if (!self->session.empty()) { WireMessage check; check.op=L"inspect"; check.activation=self->activation; check.session=self->session; self->request(check); } if (self->typing->composing()) { TypingCommand check; check.kind=TypingCommand::Inspect; self->keyRequest(check); } if (self->languageBar) self->languageBar->changed(); return 0; }
         return DefWindowProcW(window, message, wp, lp);
     }
+#ifdef SHADOWINPUT_IME
+    void receiveLocalRanking() {
+        const auto result=fastRanking.poll(typing->rankRevision());
+        if(result.empty() || !shadowRankingEnabled())return;
+        WireMessage message;
+        const auto envelope="{\"op\":\"keyboard_ranked\",\"status\":\"ok\",\"activation\":"+::quoted(activation)+",\"revision\":"+std::to_string(typing->rankRevision())+",\"rankResult\":"+utf8(result)+"}";
+        if(parseWire(envelope,message))receive(message);
+    }
+#endif
     void send(const wchar_t *op) {
         std::string text = "{\"op\":" + ::quoted(op) + ",\"activation\":" + ::quoted(activation) + ",\"session\":" + ::quoted(session) + ",\"build\":" + ::quoted(build) + ",\"client\":\"Windows editor\",\"text\":\"\"}\n";
         if (std::wcscmp(op,L"hello")==0) text.insert(1,"\"protocol\":"+std::to_string(WireProtocol)+","+(keyboard.api()?"\"capabilities\":[\"keyboard-vocabulary-v1\",\"keyboard-ranking-v1\"],":""));
@@ -392,10 +406,17 @@ public:
                 if (!PostMessageW(window,Learn,0,reinterpret_cast<LPARAM>(value))) delete value;
             },[this](TfEditCookie cookie,NativeCopy mode) { showMode(cookie,mode); });
         typing->rankingChanged=[this](const std::string &snapshot,uint64_t revision) {
+#ifdef SHADOWINPUT_IME
+            fastRanking.update({},revision);
+            if(snapshot.empty() || activation.empty() || !session.empty() || !shadowRankingEnabled())return;
+            fastRanking.update("{\"session_id\":"+::quoted(activation)+",\"generation\":1,\"revision\":"+std::to_string(revision)+","+snapshot+"}",revision);
+            fastRanking.poll(revision);
+#else
             if (!transport.connected() || activation.empty() || !session.empty()) return;
             std::string text="{\"op\":\""+std::string(snapshot.empty()?"keyboard_freeze":"keyboard_rank")+"\",\"activation\":"+::quoted(activation)+",\"revision\":"+std::to_string(revision);
             if (!snapshot.empty()) text+=",\"rankRequest\":{\"session_id\":"+::quoted(activation)+",\"generation\":1,\"revision\":"+std::to_string(revision)+","+snapshot+"}";
             transport.send(text+"}\n");
+#endif
         };
 #ifdef SHADOWINPUT_IME
         typing->setAIPanel(&aiCandidates);
@@ -417,6 +438,9 @@ public:
     }
     HRESULT edit(ITfContext *target, TfEditCookie cookie, const WireMessage &message) {
         if (message.op==L"keyboard_ranked") {
+#ifdef SHADOWINPUT_IME
+            if(!shadowRankingEnabled())return S_FALSE;
+#endif
             if (target!=context || !focused || message.activation!=activation || !session.empty()) return S_FALSE;
             mutating=true; HRESULT result=typing->applyRanking(cookie,message); mutating=false;
             if (result==S_OK) queueLayout();
@@ -552,6 +576,7 @@ public:
             refreshSettings(true);
         }
 #ifdef SHADOWINPUT_IME
+        fastRanking.notify(window,RankReady);
         SetTimer(window,3,150,nullptr);
 #endif
         languageBar=new LanguageBar([this] { return menuState(); },[this](KeyboardMenuAction action) { menuCommand(action); });

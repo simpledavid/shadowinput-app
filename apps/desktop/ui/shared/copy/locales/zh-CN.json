@@ -818,9 +818,13 @@
   "ShadowInstallIME": "安装 / 启用输入法",
   "ShadowCandidateKeys": "空格 / 数字：选词上屏　Tab：追加 AI 短语　Esc：取消。默认开启拼音纠错。",
   "ShadowAICloud": "ChatGPT 可在写作工具里用于主动润色、翻译。自动短语联想始终使用本地模型。",
-  "ShadowAILocal": "正常按空格上屏，稍停一下，本地 AI 接着联想。首次下载并启动模型后，开启 AI 时会保持就绪。写作工具中的模型选择互不影响。",
+  "ShadowAILocal": "开启 AI 后，随包提供的 4M 小模型调整拼音候选顺序；下载并启动 Qwen 后，文字上屏后还可联想短语。两者均在本地运行，写作工具中的模型选择互不影响。",
   "ShadowAIEnable": "开启自动 AI 候选",
   "ShadowAIDisable": "关闭自动 AI 候选",
   "ShadowAINote": "至少上屏 2 个字后开始联想。仅使用当前输入位置最近的词语、风格及相关词表；30 秒后清空上下文，不保存、不发给 ChatGPT。Tab 只追加建议，不改动已输入的文字；继续打字即可忽略。",
-  "ShadowWritingTool": "打开长文写作工具"
+  "ShadowWritingTool": "打开长文写作工具",
+  "ShadowRankOff": "拼音排序 · 4M · 随包提供，开启 AI 后运行",
+  "ShadowRankLoading": "拼音排序 · 4M · 正在启动…",
+  "ShadowRankReady": "拼音排序 · 4M · 已就绪",
+  "ShadowRankFailed": "拼音排序 · 4M · 启动失败，请关闭再开启 AI；普通输入仍可用"
 }

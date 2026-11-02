@@ -7,6 +7,7 @@ import (
 )
 
 func (a *app) invalidate() {
+	a.configureRanking()
 	if a.candidates != nil {
 		_ = a.candidates.SetEnabled(a.s.CanSuggest())
 	}

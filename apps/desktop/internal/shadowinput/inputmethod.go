@@ -14,6 +14,7 @@ import (
 )
 
 func (a *app) initInputMethod() {
+	a.initRanking()
 	server, err := inputcandidate.Start(a.directory, a.candidate)
 	if err != nil {
 		a.s.IMEStatus = "AI 候选服务未启动；普通输入不受影响。"

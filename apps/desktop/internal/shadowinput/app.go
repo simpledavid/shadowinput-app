@@ -33,6 +33,12 @@ import (
 type app struct {
 	dispatch          func(func())
 	candidates        *inputcandidate.Server
+	rankingServer     *inputcandidate.Server
+	fastRanker        fastRuntime
+	rankEnabled       bool
+	rankDone          chan struct{}
+	rankCancel        context.CancelFunc
+	rankJob           uint64
 	s                 state.State
 	client            *chatgptplan.Client
 	win               *mygo.Window
@@ -89,6 +95,7 @@ func (a *app) ready() {
 		a.stop()
 		a.releaseTarget()
 		a.closeLocal()
+		a.closeRanking()
 		if a.candidates != nil {
 			a.candidates.Close()
 		}
