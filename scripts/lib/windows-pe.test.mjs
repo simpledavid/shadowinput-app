@@ -74,3 +74,11 @@ test('Windows dependency gate follows bundled DLLs and limits optional driver im
   writeFileSync(path.join(directory, 'HELPER.dll'), peImage(['MSVCP140.dll']));
   assert.throws(() => verifyWindowsPEDependencies([executable], options), /msvcp140.dll/);
 });
+
+test('Windows worker can use the OS ProcessPrng library without bundling it', t => {
+  const directory = mkdtempSync(path.join(tmpdir(), 'shadowinput-pe-'));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const executable = path.join(directory, 'arion-keyboard-ranker.exe');
+  writeFileSync(executable, peImage(['bcryptprimitives.dll']));
+  assert.equal(verifyWindowsPEDependencies([executable]).length, 1);
+});

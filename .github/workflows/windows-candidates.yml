@@ -20,6 +20,18 @@ jobs:
           msystem: UCRT64
           path-type: inherit
           install: mingw-w64-ucrt-x86_64-gcc
+      - name: Prepare pinned Rust target
+        shell: pwsh
+        run: |
+          rustup toolchain install 1.90.0 --profile minimal
+          rustup default 1.90.0
+          rustup target add x86_64-pc-windows-gnu
+      - name: Build and exercise the real 4M worker
+        shell: msys2 {0}
+        run: |
+          export PATH="$(cygpath -u "$USERPROFILE")/.cargo/bin:$PATH"
+          node scripts/stage-keyboard-ranker.mjs windows-amd64
+          node scripts/test-keyboard-ranker.mjs
       - name: Check phrase state and Windows HTTP transport
         shell: msys2 {0}
         run: node scripts/test-shadowinput-candidates.mjs

@@ -26,11 +26,12 @@ function run(command, args, env = process.env, cwd = root) {
 if (mode === 'check') {
   run('go', ['run', './apps/desktop/cmd/shadowinput-icon', '-check']);
   run(process.execPath, ['scripts/test-shadowinput-candidates.mjs']);
-  run('go', ['test', '-race', './packages/core/...', './apps/desktop/cmd/shadowinput-icon', './apps/desktop/infrastructure/chatgptplan', './apps/desktop/infrastructure/localwriting', './apps/desktop/infrastructure/llm/...', './apps/desktop/infrastructure/rewriting', './apps/desktop/infrastructure/provision', './apps/desktop/cmd/arion-llm', './apps/desktop/infrastructure/writingprefs', './apps/desktop/infrastructure/inputcandidate', './apps/desktop/infrastructure/shadowime', './apps/desktop/ui/shared/writing', './apps/desktop/internal/oauthloopback', './apps/desktop/internal/shadowinput', './apps/desktop/ui/features/writing', './apps/desktop/ui/shared/copy']);
+  run('go', ['test', '-race', './packages/core/...', './apps/desktop/cmd/shadowinput-icon', './apps/desktop/infrastructure/chatgptplan', './apps/desktop/infrastructure/localwriting', './apps/desktop/infrastructure/llm/...', './apps/desktop/infrastructure/rewriting', './apps/desktop/infrastructure/provision', './apps/desktop/cmd/arion-llm', './apps/desktop/infrastructure/writingprefs', './apps/desktop/infrastructure/inputcandidate', './apps/desktop/infrastructure/keyboardmodel', './apps/desktop/infrastructure/shadowime', './apps/desktop/ui/shared/writing', './apps/desktop/internal/oauthloopback', './apps/desktop/internal/shadowinput', './apps/desktop/ui/features/writing', './apps/desktop/ui/shared/copy']);
   run('go', ['vet', source, './apps/desktop/infrastructure/chatgptplan', './apps/desktop/internal/shadowinput']);
   run(process.execPath, ['scripts/check-repository.mjs']);
 } else if (mode === 'dev') {
   const platform = nativeTarget === 'macos' ? 'darwin-arm64' : 'windows-amd64';
+  run(process.execPath, ['scripts/stage-keyboard-ranker.mjs', platform]);
   run(process.execPath, ['scripts/stage-llm-runtime.mjs', platform]);
   run('go', ['run', './cmd/shadowinput'], process.env, path.join(root, 'apps/desktop'));
 } else if (mode === 'build' || mode === 'package') {
@@ -58,7 +59,9 @@ if (mode === 'check') {
   const env = { ...process.env, GOOS: target === 'macos' ? 'darwin' : 'windows', GOARCH: target === 'macos' ? 'arm64' : 'amd64', CGO_ENABLED: target === 'macos' ? '1' : '0' };
   if (target === 'macos') env.MACOSX_DEPLOYMENT_TARGET = '14.0';
   const platform = `${env.GOOS}-${env.GOARCH}`;
+  run(process.execPath, ['scripts/stage-keyboard-ranker.mjs', platform]);
   run(process.execPath, ['scripts/stage-llm-runtime.mjs', platform]);
+  cpSync(path.join(root, 'apps/desktop/resources', platform, 'keyboard-ranker'), path.join(resources, 'keyboard-ranker'), {recursive:true});
   cpSync(path.join(root, 'apps/desktop/resources', platform, 'llm'), path.join(resources, 'llm'), {recursive: true});
   run(process.execPath, ['scripts/build-shadowinput-ime.mjs', target]);
   if (target === 'macos') cpSync(path.join(root,'apps/desktop/resources/shadowinput/ShadowInput.app'), path.join(resources,'ShadowInput.app'), {recursive:true});
@@ -100,7 +103,7 @@ if (mode === 'check') {
   const fonts=desktopFonts(root);
   copyFileSync(path.join(fonts.directory,fonts.manifest.license),path.join(licenses,'SourceHanSans-OFL.txt'));
   copyFileSync(path.join(fonts.directory,'manifest.json'),path.join(licenses,'source-han-sans.json'));
-  const buildInfo = { product: 'shadowinput', version, revision, dirty, target, arch: env.GOARCH, go: output('go', ['env', 'GOVERSION'], env), source: `${repository}/tree/${revision}`, license: 'AGPL-3.0', localRuntime: JSON.parse(readFileSync(path.join(root, 'scripts/llm-runtime.json'), 'utf8')).platforms[platform], localModel: 'qwen3.5-2b-q4-k-m-metal', weightsBundled: false };
+  const buildInfo = { product: 'shadowinput', version, revision, dirty, target, arch: env.GOARCH, go: output('go', ['env', 'GOVERSION'], env), source: `${repository}/tree/${revision}`, license: 'AGPL-3.0', localRuntime: JSON.parse(readFileSync(path.join(root, 'scripts/llm-runtime.json'), 'utf8')).platforms[platform], localModel: 'qwen3.5-2b-q4-k-m-metal', weightsBundled: false, keyboardModel: 'chinese-ime-lm-4m-int8', keyboardWeightsBundled: true };
   writeFileSync(path.join(resources, 'BUILD-INFO.json'), `${JSON.stringify(buildInfo, null, 2)}\n`);
   writeFileSync(path.join(out, 'README.txt'), `shadowinput ${version} — development preview / 开发预览版
 
@@ -152,10 +155,11 @@ Based on AstraFoundry/Arion. Distributed under AGPL-3.0; upstream and dependency
     for (const file of readdirSync(llm).filter(name => name.endsWith('.dylib') || ['llama-server', 'arion-llm'].includes(name))) {
       run('/usr/bin/codesign', ['--force', '--sign', '-', path.join(llm,file)]);
     }
+    run('/usr/bin/codesign', ['--force', '--sign', '-', path.join(resources, 'keyboard-ranker/arion-keyboard-ranker')]);
     run('/usr/bin/codesign', ['--force', '--sign', '-', app]);
     run('/usr/bin/codesign', ['--verify', '--deep', '--strict', app]);
   }
-  if (target === 'windows') verifyWindowsPEDependencies([executable, ...['arion-llm.exe','llama-server.exe','llama-server-avx2.exe'].map(file=>path.join(resources,'llm',file))]);
+  if (target === 'windows') verifyWindowsPEDependencies([executable, path.join(resources,'keyboard-ranker/arion-keyboard-ranker.exe'), ...['arion-llm.exe','llama-server.exe','llama-server-avx2.exe'].map(file=>path.join(resources,'llm',file))]);
   console.log(`Built ${executable}`);
   if (mode === 'package') {
     const releaseDirectory = path.join(root, 'apps/desktop/build/shadowinput/releases');

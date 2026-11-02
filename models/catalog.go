@@ -18,15 +18,19 @@ var catalogJSON []byte
 
 // Catalog is the approved, provisionable model metadata (MOD-01).
 type Catalog struct {
-	Version   int        `json:"version"`
-	Artifacts []Artifact `json:"artifacts"`
-	Bundles   []Bundle   `json:"bundles"`
-	Rewriters []Rewriter `json:"rewriters"`
+	Version         int         `json:"version"`
+	Artifacts       []Artifact  `json:"artifacts"`
+	Bundles         []Bundle    `json:"bundles"`
+	Rewriters       []Rewriter  `json:"rewriters"`
+	KeyboardRankers []FileModel `json:"keyboardRankers"`
 }
 
-// Rewriter is an optional local LLM for live rewriting (009). Its weights
-// are individual pinned files; the GenAI runtime ships inside the app.
-type Rewriter struct {
+// Rewriter retains the existing writing API for pinned local file models.
+type Rewriter = FileModel
+
+// FileModel pins individually downloaded weights and their runtime provenance.
+// Rewriters are provisioned on demand; fast keyboard models ship in the bundle.
+type FileModel struct {
 	ID           string                `json:"id"`
 	Name         string                `json:"name"`
 	Runtime      Runtime               `json:"runtime"`
@@ -67,8 +71,14 @@ type RewriteEvaluation struct {
 }
 
 // Rewriter returns a rewriter by ID.
-func (c Catalog) Rewriter(id string) (Rewriter, bool) {
-	for _, r := range c.Rewriters {
+func (c Catalog) Rewriter(id string) (Rewriter, bool) { return findFileModel(c.Rewriters, id) }
+
+// KeyboardRanker returns the separately bundled, non-generative input model.
+func (c Catalog) KeyboardRanker(id string) (FileModel, bool) {
+	return findFileModel(c.KeyboardRankers, id)
+}
+func findFileModel(items []FileModel, id string) (FileModel, bool) {
+	for _, r := range items {
 		if r.ID == id {
 			return r, true
 		}
@@ -76,8 +86,8 @@ func (c Catalog) Rewriter(id string) (Rewriter, bool) {
 	return Rewriter{}, false
 }
 
-// SizeBytes is a rewriter's total download size.
-func (r Rewriter) SizeBytes() int64 {
+// SizeBytes is the total size of the pinned weight files.
+func (r FileModel) SizeBytes() int64 {
 	var n int64
 	for _, f := range r.Files {
 		n += f.SizeBytes
@@ -227,7 +237,7 @@ func Parse(data []byte) (Catalog, error) {
 		artifacts[a.ID] = a
 	}
 	rewriters := map[string]bool{}
-	for _, r := range catalog.Rewriters {
+	for _, r := range append(append([]Rewriter(nil), catalog.Rewriters...), catalog.KeyboardRankers...) {
 		if r.ID == "" || r.Name == "" || rewriters[r.ID] {
 			return Catalog{}, fmt.Errorf("catalog: missing or duplicate rewriter id %q", r.ID)
 		}

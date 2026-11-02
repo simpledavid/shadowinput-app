@@ -5,7 +5,8 @@ import path from 'node:path';
 // Windows system components, excluding compiler redistributables. Presence on
 // the build host alone does not make a DLL part of a clean Windows install.
 const systemLibraries = new Set([
-  'advapi32.dll', 'bcrypt.dll', 'comctl32.dll', 'comdlg32.dll', 'crypt32.dll',
+  // ProcessPrng ships with Windows: https://learn.microsoft.com/windows/win32/seccng/processprng
+  'advapi32.dll', 'bcrypt.dll', 'bcryptprimitives.dll', 'comctl32.dll', 'comdlg32.dll', 'crypt32.dll',
   'd2d1.dll', 'd3d11.dll', 'd3d12.dll', 'd3dcompiler_47.dll', 'dcomp.dll',
   'dwrite.dll', 'dxgi.dll', 'gdi32.dll', 'imm32.dll', 'kernel32.dll',
   'msimg32.dll', 'msvcrt.dll', 'ntdll.dll', 'ole32.dll', 'oleaut32.dll',

@@ -19,6 +19,7 @@ const Shortcut = "CmdOrCtrl+Shift+J"
 type State struct {
 	InputPage, AICandidates, IMEInstalling                    bool
 	IMEStatus                                                 string
+	RankingStatus                                             copy.Key
 	AccessRequired                                            bool
 	Provider                                                  string
 	Local                                                     LocalStatus

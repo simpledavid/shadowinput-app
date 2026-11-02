@@ -18,6 +18,11 @@ func inputSettings(c *ui.Context, s *state.State, a state.Actions, t theme.Token
 				ui.Text(c, s.IMEStatus).Wrap().Grow(1).FontSize(theme.Caption)
 			})
 			ui.Text(c, m.Text(copy.ShadowCandidateKeys)).Wrap()
+			rankStatus := s.RankingStatus
+			if rankStatus == "" {
+				rankStatus = copy.ShadowRankOff
+			}
+			ui.Text(c, m.Text(rankStatus)).Wrap().FontSize(theme.Caption).TextColor(t.Muted)
 			localModel(c, s, a, t, m)
 			profileFailure(c, s, a, t, m)
 			if s.Busy {
@@ -31,7 +36,7 @@ func inputSettings(c *ui.Context, s *state.State, a state.Actions, t theme.Token
 			}
 			kit.Button(c.Key("ai-candidates"), t, kit.Outline, m.Text(key), true).OnClick(a.ToggleCandidates)
 			ui.Text(c, m.Text(copy.ShadowAINote)).Wrap().FontSize(theme.Caption).TextColor(t.Muted)
-   ui.Text(c, m.Text(copy.ShadowAICloud)).Wrap().FontSize(theme.Caption).TextColor(t.Muted)
+			ui.Text(c, m.Text(copy.ShadowAICloud)).Wrap().FontSize(theme.Caption).TextColor(t.Muted)
 			kit.Button(c.Key("open-writing"), t, kit.Ghost, m.Text(copy.ShadowWritingTool), true).OnClick(a.OpenEditor)
 		})
 	})

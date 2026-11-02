@@ -7,10 +7,32 @@
 1. 打开 shadowinput，在“输入法设置”安装 / 启用组件。macOS 首次需要系统允许；Windows 注册 TSF 服务需要管理员授权。
 2. 在 macOS 菜单栏输入菜单或 Windows 的 Win + 空格菜单中选择 shadowinput。只有系统实际列出并选中输入法后，才可进行下面的输入验收。
 3. 在编辑器里输入拼音。空格或数字选择普通候选，Esc 取消。普通拼音使用本地 Rime，不依赖 ChatGPT。
-4. 在主程序下载并启动本地模型，明确开启“AI 候选”，并保持主程序运行。正常按空格分词上屏；至少 2 个字后暂停约 180 毫秒，请求一次短语续写。模型推理耗时另计。已下载且 AI 开关开启时，下次启动会预热模型；不会自动下载。
+4. 明确开启“AI 候选”，并保持主程序运行。随包提供的 4M 小模型先启动，用于现有拼音候选排序；设置页单独显示其就绪或失败状态，不依赖 ChatGPT 或 Qwen。下载并启动 Qwen 后，还可使用上屏后的短语联想。正常按空格分词上屏；至少 2 个字后暂停约 180 毫秒，请求一次短语续写。模型推理耗时另计。已下载且 AI 开关开启时，下次启动会预热模型；不会自动下载。
 5. 只有请求完整成功且通过检查，才显示独立短语候选，末尾用 `⇥` 提示 Tab 采纳，不再在左侧显示“AI”。Tab 或点击只追加新短语，保留已上屏文字。继续输入、移动光标、删除、换焦点或关闭 AI 会撤销旧候选。请求超时（2 秒）、重复原文、回复式结果或不可用时不显示短语行。
 
 拼音容错默认开启，复用 Rime 已有的纠错能力；它不调用大模型。短语联想只追加文字，不自动发送聊天、不读取整篇文档。ChatGPT 登录、润色、翻译、改写、续写和完整差异审阅保留在“长文写作工具”中，模型选择互不影响。AI 行不占用普通候选的数字槽位；AI 文本不写入用户词库。
+
+## 本地候选排序
+
+开启 AI 后，Rime 仍先显示普通候选，`chinese-ime-lm` 4M 在独立进程中从这些候选中选择首选，不生成新词，也不替换 Qwen 的上屏后短语联想。排序和续写各有独立的回环端口、随机令牌、取消状态和发现文件；Qwen 未安装、加载或繁忙不阻止排序。关闭 AI 撤销两条路径并释放 4M 进程。排序失败时保留 Rime 菜单，设置页提示关闭再开启 AI 重试。
+
+只比较完整覆盖当前拼音、与首选覆盖范围相同的汉字候选，最多 27 个；保守地保留 `phrase` / `user_phrase` 词库首选。英文、Emoji、部分输入候选和已开始导航的菜单不被改动。即使没有前文也可以排序；前文仅使用输入法已有的最近确认上屏上下文，不读取宿主全文。返回值必须是已有候选身份的稳定提升，应用前再次验证输入修订、焦点和组合范围。继续打字、选词、翻页、移动光标、失焦或关闭 AI 均使旧结果失效。没有更好的选择时菜单保持不变，因此不会每次出现额外的 AI 提示。
+
+排序结果有效期为 100 毫秒；工作进程有 1 秒看门狗，取消后先排空当前有界响应再处理下一请求，避免串答。原生输入线程不等待推理。Windows 完成通知回到原 COM 线程后才申请编辑会话，不在工作线程操作 TSF。
+
+权重、大小、校验值和许可证由[模型目录](../../models/catalog.json)统一定义，使用 `chinese-ime-lm` 0.2.0 的 `best_where` 策略。工作进程适配自 [Arion 0095c104](https://github.com/AstraFoundry/Arion/tree/0095c1046aa33e4e3d30e54ac236e0b82a8a982f/apps/desktop/runtime/keyboard-ranker)，仅保留 4M 候选排序，不引入其 25M 比较评分或窗口上下文读取。构建固定 Rust 1.90.0 和 Cargo.lock，下载时及运行前验证权重 SHA-256；保留模型内嵌 Apache-2.0 署名和全部 Cargo 依赖许可证。
+
+准备 Rust 1.90.0；macOS 使用 `aarch64-apple-darwin`，Windows 使用 `x86_64-pc-windows-gnu`（需要 MinGW-w64 GCC）。`scripts/shadowinput.mjs build/package` 自动调用 stage；只在构建时下载，打字时不下载。单独检查：
+
+```sh
+node scripts/stage-keyboard-ranker.mjs darwin-arm64
+node scripts/test-keyboard-ranker.mjs
+node scripts/test-shadowinput-ranking.mjs
+```
+
+Windows staging 参数改为 `windows-amd64`；最后一项是 macOS 专用的真实 Rime / HTTP / 模型 / NSTextView 夹具。Windows 的同一真实模型脚本、候选状态及 WinHTTP 测试由手动触发的 `Windows candidate checks` 工作流执行。它们不能代替已安装 TSF 在微信中的实际键盘验收。
+
+本轮已验证：无前文排序、两条请求路径互不取消、关闭及过期结果拒绝、退出与启动交错不死锁；真实 4M 的合成选词、保留词库首选、拒绝不同覆盖范围和损坏权重；macOS 原生完整请求到空格上屏、旧修订拒绝。单个合成选词在本机约 2 毫秒，不是准确率或尾延迟基准。该实现不保证“部门”之后出现续写，也不构成 Windows 微信兼容性修复。
 
 ## 错误恢复和更新
 
@@ -29,7 +51,7 @@ macOS 注册标识为 `org.shadowinput.inputmethod.shadowinput`，模式为 `org
 
 ## 构建
 
-先准备 Rime SDK、固定版本依赖和词库，再构建主程序；模型权重不随包分发。macOS 需要 Xcode，原生学习层还使用 Swift/C++ 工具链。
+先准备 Rime SDK、固定版本依赖和词库，再构建主程序；Qwen 权重不随包分发；4M 排序权重随主程序分发。macOS 需要 Xcode，原生学习层还使用 Swift/C++ 工具链。
 
 ```sh
 node scripts/stage-keyboard-runtime.mjs

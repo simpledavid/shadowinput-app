@@ -31,6 +31,18 @@ int main() {
         require(fourth->canceled,"teardown did not cancel transport");
         state.complete(fourth,L"late");
         require(state.read(4).empty(),"teardown accepted a result");
+        ShadowCandidateState rank(ShadowRequestKind::Ranking);
+        std::string snapshot(2000,'x');rank.update(snapshot,1,0);
+        auto proposal=rank.begin(1,0);
+        require(bool(proposal),"fast ranking must start immediately with bounded JSON");
+        rank.update(snapshot,2,1);
+        require(proposal->canceled,"a new key must revoke the rank request");
+        auto next=rank.begin(2,1);rank.complete(proposal,L"old");
+        std::wstring permutation(300,L'x');rank.complete(next,permutation);
+        require(rank.read(2)==permutation,"bounded permutation must survive phrase-length limits");
+        rank.update(std::string(32769,'x'),3,2);
+        require(!rank.begin(3,2),"oversized ranking snapshot accepted");
+        rank.close();
         std::cout<<"PASS: debounce, replacement, cancellation, stale completion and teardown\n";
     } catch(const std::exception &error) {
         std::cerr<<error.what()<<'\n';return 1;

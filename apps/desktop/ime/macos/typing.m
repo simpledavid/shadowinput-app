@@ -565,7 +565,11 @@ static const char *vocabularyString(id value, NSUInteger maximum) {
 }
 - (void)requestRanking {
     if (!self.neuralRanking || !self.rankingChanged || !self.composing || self.ascii ||
-        _menu.page || _menu.highlight || _menu.expanded || _menu.count < 2 || !self.context.length || [self.context lengthOfBytesUsingEncoding:NSUTF8StringEncoding]>2048) return;
+        _menu.page || _menu.highlight || _menu.expanded || _menu.count < 2 ||
+#ifndef SHADOWINPUT_IME
+        !self.context.length ||
+#endif
+        [self.context lengthOfBytesUsingEncoding:NSUTF8StringEncoding]>2048) return;
     const char *input = self.engine.api->get_input(self.session);
     if (!input || !*input || strlen(input) > 256 || self.engine.api->get_caret_pos(self.session) != strlen(input)) return;
     if (!containsHan(@(_menu.texts[0]))) return;
@@ -580,7 +584,7 @@ static const char *vocabularyString(id value, NSUInteger maximum) {
     }
     if (candidates.count<2) return;
     self.rankingCandidates = candidates; self.rankingSlots = slots;
-    self.rankingChanged(@{@"input":@(input),@"before":self.context,@"candidates":candidates},self.rankingRevision);
+    self.rankingChanged(@{@"input":@(input),@"before":self.context ?: @"",@"candidates":candidates},self.rankingRevision);
 }
 - (void)applyRankingMessage:(NSDictionary *)message activation:(NSString *)activation {
     uint64_t revision=0, generation=0, resultRevision=0;

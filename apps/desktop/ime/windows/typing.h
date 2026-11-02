@@ -356,6 +356,7 @@ private:
         return hr;
     }
 public:
+    uint64_t rankRevision() const { return rankingRevision; }
     std::function<void(const std::string&,uint64_t)> rankingChanged;
     void freezeRanking() {
         rankingSlots.clear(); rankingIDs.clear(); ++rankingRevision;
@@ -364,7 +365,11 @@ public:
     void requestRanking() {
         auto before=previousContext();
         if (!neuralRanking || !rankingChanged || !composition || ascii || menu.page || menu.expanded ||
-            menu.highlight || menu.count<2 || before.empty() || before.size()>2048) return;
+            menu.highlight || menu.count<2 ||
+#ifndef SHADOWINPUT_IME
+            before.empty() ||
+#endif
+            before.size()>2048) return;
         const char *input=runtime.api()->get_input(session);
         if (!input || !*input || std::strlen(input)>256 || runtime.api()->get_caret_pos(session)!=std::strlen(input) || !runtime.han(menu.texts[0])) return;
         std::string candidates;
@@ -426,8 +431,12 @@ public:
     bool isEnglishPunctuation() const { return englishPunctuation; }
     void options(const std::wstring &path) { optionsPath=path; KeyboardOptions value; if (readKeyboardOptions(path,value)) { fullWidth=value.fullWidth; englishPunctuation=value.englishPunctuation; } else modeFailure=nativeCopy(NativeCopy::OptionsFailed); }
     void configure(const KeyboardSettings &settings) {
+#ifdef SHADOWINPUT_IME
+        neuralRanking=true;
+#else
         if (neuralRanking!=settings.neuralRanking) freezeRanking();
         neuralRanking=settings.neuralRanking;
+#endif
         spellingChanged=spellingChanged || typoCorrection!=settings.typoCorrection || fuzzyPinyin!=settings.fuzzyPinyin;
         settingsChanged=settingsChanged || pageSize!=settings.pageSize || textSize!=settings.textSize || emojiSuggestions!=settings.emojiSuggestions || typoCorrection!=settings.typoCorrection || fuzzyPinyin!=settings.fuzzyPinyin || memcmp(&palette,&settings.palette,sizeof(palette))!=0;
         pageSize=settings.pageSize; textSize=settings.textSize; palette=settings.palette;

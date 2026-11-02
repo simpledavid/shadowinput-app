@@ -38,7 +38,7 @@ class ShadowCandidateHTTP {
         if(!notifyUnload || !WinHttpSetTimeouts(session,1000,1000,1000,16000))return false;
         connection=WinHttpConnect(session,L"127.0.0.1",port,0);
         if(!connection)return false;
-        request=WinHttpOpenRequest(connection,L"POST",L"/candidate",nullptr,WINHTTP_NO_REFERER,WINHTTP_DEFAULT_ACCEPT_TYPES,0);
+        request=WinHttpOpenRequest(connection,L"POST",shadowRoute(operation->kind),nullptr,WINHTTP_NO_REFERER,WINHTTP_DEFAULT_ACCEPT_TYPES,0);
         if(!request)return false;
         DWORD disabled=WINHTTP_DISABLE_REDIRECTS|WINHTTP_DISABLE_COOKIES|WINHTTP_DISABLE_AUTHENTICATION;
         if(!WinHttpSetOption(request,WINHTTP_OPTION_DISABLE_FEATURE,&disabled,sizeof(disabled)))return false;
@@ -46,7 +46,7 @@ class ShadowCandidateHTTP {
         return WinHttpSetStatusCallback(request,callback,flags,0)!=WINHTTP_INVALID_STATUS_CALLBACK;
     }
 public:
-    explicit ShadowCandidateHTTP(std::shared_ptr<ShadowCandidateRequest> operation):operation(operation),payload(operation->source) {}
+    explicit ShadowCandidateHTTP(std::shared_ptr<ShadowCandidateRequest> operation):operation(operation),payload(operation->source) { if(operation->kind==ShadowRequestKind::Ranking)deadline=GetTickCount64()+1000; }
     ShadowCandidateHTTP(const ShadowCandidateHTTP&)=delete;
     ShadowCandidateHTTP &operator=(const ShadowCandidateHTTP&)=delete;
     ~ShadowCandidateHTTP() {
@@ -72,7 +72,7 @@ public:
             if(operation->canceled || !WinHttpReadData(request,buffer,sizeof(buffer),nullptr) || !wait(WINHTTP_CALLBACK_STATUS_READ_COMPLETE))return {};
             DWORD count=received.load();
             if(!count)break;
-            if(count>sizeof(buffer) || body.size()+count>1024)return {};
+            if(count>sizeof(buffer) || body.size()+count>(operation->kind==ShadowRequestKind::Ranking?4096u:1024u))return {};
             body.append(buffer,count);
         }
         return body.find_first_of("\r\n\0",0,3)==std::string::npos?wide(body):std::wstring{};
