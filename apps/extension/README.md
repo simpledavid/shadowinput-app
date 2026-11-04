@@ -7,8 +7,9 @@ See [installation](INSTALL.txt), [verification](../../docs/project/shadowinput-e
 
 The popup exposes target language, authorized model/refresh, automatic
 translation, the pinned SI button, Shift-hover and input preview in one view.
-There is no secondary Settings page or large page-translation button. Text
-translation retains a separate link. An inline account card shows the signed-in
+There is no secondary Settings page, large page-translation button or duplicate
+footer links. Text translation uses the page launcher's Quick translation window.
+An inline account card shows the signed-in
 email, plan limits and sign-out action, and handles sign-in/progress/retry.
 Sign-out clears the displayed identity and model choices after worker confirmation;
 a failed sign-out remains recoverable. Selection translation stays in the right-click
