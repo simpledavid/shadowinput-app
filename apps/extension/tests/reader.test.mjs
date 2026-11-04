@@ -135,3 +135,81 @@ test('the single floating button translates on click and restores without anothe
     assert.equal(button.getAttribute('aria-label'),'翻译此页');
   } finally {dom.window.close();}
 });
+
+test('sixteen short paragraphs use five bounded requests while the first result stays small',async()=>{
+  const dom=environment(),document=dom.window.document,requests=[];
+  document.querySelector('main').innerHTML=Array.from({length:16},(_,i)=>'<p>Sentence '+i+'.</p>').join('');
+  const reader=new Reader(document,async(type,fields)=>{
+    if(type==='contentConfig')return config;
+    if(type==='translateBlock'){requests.push([fields.text]);return 'Translated '+fields.text;}
+    if(type==='translateBatch'){requests.push(fields.texts);return fields.texts.map(text=>'Translated '+text);}
+  });
+  try {
+    await reader.action('translate');
+    assert.equal(document.querySelectorAll('[data-shadowinput="translation"]').length,16);
+    assert.equal(requests.length,5,'fixed provider overhead should be paid once per batch, not once per paragraph');
+    assert.equal(requests[0].length,1,'the first visible result must not wait for a full batch');
+    assert.ok(requests.every(texts=>texts.length<=4));
+  } finally {await reader.action('restore');dom.window.close();}
+});
+
+test('the visible paragraph is translated first and duplicate text only makes one request',async()=>{
+  const dom=environment(),document=dom.window.document,requests=[];
+  document.querySelector('main').innerHTML='<p>Below the fold.</p><p>Visible sentence.</p><p>Visible sentence.</p>';
+  const nodes=[...document.querySelectorAll('p')];
+  nodes.forEach((node,index)=>node.getBoundingClientRect=()=>({top:index===0?2000:100,bottom:index===0?2040:140}));
+  const reader=new Reader(document,async(type,fields)=>{
+    if(type==='contentConfig')return config;
+    if(type==='translateBlock'){requests.push(fields.text);return 'Translated '+fields.text;}
+    if(type==='translateBatch'){requests.push(...fields.texts);return fields.texts.map(text=>'Translated '+text);}
+  });
+  try {
+    await reader.action('translate');
+    assert.equal(requests[0],'Visible sentence.');
+    assert.equal(requests.filter(text=>text==='Visible sentence.').length,1);
+    assert.equal(document.querySelectorAll('[data-shadowinput="translation"]').length,3);
+  } finally {await reader.action('restore');dom.window.close();}
+});
+
+test('batches stay within limits and preserve long single paragraphs',async()=>{
+  const dom=environment(),document=dom.window.document,requests=[];
+  const texts=['First.','a'.repeat(3500),'b'.repeat(3500),'c'.repeat(8000),'Last.'];
+  document.querySelector('main').replaceChildren(...texts.map(text=>{const p=document.createElement('p');p.textContent=text;return p;}));
+  const reader=new Reader(document,async(type,fields)=>{
+    if(type==='contentConfig')return config;
+    if(type==='translateBlock'){requests.push({type,texts:[fields.text]});return 'Translated.';}
+    if(type==='translateBatch'){requests.push({type,texts:fields.texts});return fields.texts.map(()=> 'Translated.');}
+  });
+  try {
+    await reader.action('translate');
+    assert.equal(document.querySelectorAll('[data-shadowinput="translation"]').length,texts.length);
+    for(const request of requests)if(request.type==='translateBatch')assert.ok(request.texts.length<=4 && request.texts.join('').length<=6000);
+    assert.ok(requests.some(request=>request.type==='translateBlock' && request.texts[0].length===8000));
+  } finally {await reader.action('restore');dom.window.close();}
+});
+
+test('batch completions reject changed paragraphs and cancelled work never returns to the page',async()=>{
+  const dom=environment(),document=dom.window.document,replies=[];let active=0,peak=0;
+  document.querySelector('main').innerHTML=Array.from({length:10},(_,i)=>'<p>Sentence '+i+'.</p>').join('');
+  const nodes=[...document.querySelectorAll('p')];
+  const reader=new Reader(document,async(type,fields)=>{
+    if(type==='contentConfig')return config;
+    if(type==='translateBlock' || type==='translateBatch'){
+      active++;peak=Math.max(peak,active);
+      return new Promise(resolve=>replies.push(()=>{active--;resolve(type==='translateBlock'?'Translated first.':fields.texts.map(text=>'Translated '+text));}));
+    }
+  });
+  const run=reader.action('translate');await tick();
+  assert.equal(replies.length,2);assert.equal(peak,2);
+  nodes[1].textContent='Changed draft.';
+  replies[1]();await tick();
+  assert.equal(nodes[1].querySelector('[data-shadowinput="translation"]'),null);
+  assert.ok(nodes[2].querySelector('[data-shadowinput="translation"]'));
+  await reader.action('restore');
+  for(const resolve of replies)resolve();
+  await run;
+  assert.equal(document.querySelector('[data-shadowinput="translation"]'),null);
+  assert.equal(peak,2,'batching must not increase concurrent provider work');
+  assert.equal(replies.length,3,'cancelled work must not schedule more batches');
+  dom.window.close();
+});

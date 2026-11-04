@@ -5,6 +5,8 @@ import {diagnosticOf,diagnosticText} from '../../shared/diagnostics.js';
 import {settings,type Settings} from '../../shared/settings.js';
 import {object,requiredString} from '../../shared/validation.js';
 import {paragraphs,originalText,annotate,restore} from './paragraphs.js';
+import {paragraphBatches} from './batches.js';
+import {translatedTexts} from '../../shared/translation-batch.js';
 import {draft} from './draft.js';
 import {card} from './card.js';
 import {launcher} from './launcher.js';
@@ -53,16 +55,25 @@ export class Reader {
   private panel(title:string) {
     return card(this.document,this.config.locale,title,()=>{});
   }
-  private async result(text:string):Promise<string> {
-    const generation=this.generation;
-    const key=this.config.model+'|'+this.config.target+'|'+text;
-    const cached=this.cache.get(key);
-    if(cached)return cached;
-    const translated=requiredString(await this.send('translateBlock',{text,id:crypto.randomUUID()}));
-    if(generation!==this.generation)throw new Error('cancelled');
-    if(this.cache.size>=200)this.cache.delete(this.cache.keys().next().value ?? '');
-    this.cache.set(key,translated);return translated;
+  private async results(texts:string[]):Promise<string[]> {
+    const generation=this.generation,prefix=this.config.model+'|'+this.config.target+'|';
+    const resolved=new Map<string,string>();
+    for(const text of texts){const cached=this.cache.get(prefix+text);if(cached)resolved.set(text,cached);}
+    const missing=texts.filter(text=>!resolved.has(text));
+    if(missing.length) {
+      const fields={id:crypto.randomUUID()};
+      const values=missing.length===1?[requiredString(await this.send('translateBlock',{...fields,text:missing[0]}))]:
+        translatedTexts(await this.send('translateBatch',{...fields,texts:missing}),missing.length);
+      if(generation!==this.generation)throw new Error('cancelled');
+      missing.forEach((text,index)=>{
+        const value=requiredString(values[index]);resolved.set(text,value);
+        if(this.cache.size>=200)this.cache.delete(this.cache.keys().next().value ?? '');
+        this.cache.set(prefix+text,value);
+      });
+    }
+    return texts.map(text=>requiredString(resolved.get(text)));
   }
+  private async result(text:string):Promise<string> {return requiredString((await this.results([text]))[0]);}
   async action(action:string):Promise<void> {
     if(action==='restore' || (action==='toggle' && this.state().translated)){this.stop();return;}
     const started=this.generation;
@@ -94,18 +105,20 @@ export class Reader {
     this.activeScan=generation;
     const nodes=paragraphs(this.document).filter(node=>!this.seen.has(node)).slice(0,120-this.count);
     if(!nodes.length){this.activeScan=undefined;return;}
+    const batches=paragraphBatches(nodes);
+    nodes.forEach(node=>this.seen.add(node));
     const panel=card(this.document,this.config.locale,this.text.pageTitle,()=>this.stop());
     panel.button(this.text.restore,()=>this.stop());
     panel.body.textContent=this.text.working;
     let cursor=0;
     const work=async()=>{
-      while(cursor<nodes.length && this.enabled && generation===this.generation) {
-        const node=nodes[cursor++];if(!node)break;
-        this.seen.add(node);
-        const before=originalText(node);
-        const translated=await this.result(before);
+      while(cursor<batches.length && this.enabled && generation===this.generation) {
+        const batch=batches[cursor++];if(!batch)break;
+        const values=await this.results(batch.map(group=>group.text));
         if(!this.enabled || generation!==this.generation)return;
-        if(annotate(node,before,translated))this.count++;
+        batch.forEach((group,index)=>{
+          for(const node of group.nodes)if(annotate(node,group.text,requiredString(values[index])))this.count++;
+        });
         panel.body.textContent=this.count+' '+this.text.progress+(this.count>=120?' · '+this.text.limited:'');
       }
     };

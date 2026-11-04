@@ -188,3 +188,41 @@ test('empty output diagnostics distinguish missing completion from absent final 
     });
   }
 });
+
+test('a paragraph batch sends one bounded request and maps returned ids to the original order',async()=>{
+  const {translateBatch}=await import('../build/features/translate/index.js');
+  let calls=0;
+  const fetcher=async(_url,options)=>{
+    calls++;
+    const body=JSON.parse(options.body);
+    assert.deepEqual(JSON.parse(body.input[0].content),[{id:0,text:'One.'},{id:1,text:'Two.'}]);
+    assert.equal(body.store,false);assert.equal(body.stream,true);
+    assert.match(body.instructions,/Simplified Chinese/);
+    assert.equal(body.model,'chosen-model');
+    return stream([{type:'response.completed',response:{status:'completed',output:[item(JSON.stringify({translations:[{id:1,text:'二。'},{id:0,text:'一。'}]}))]}}]);
+  };
+  assert.deepEqual(await translateBatch('synthetic',['One.','Two.'],'zh-CN','chosen-model',new AbortController().signal,fetcher),['一。','二。']);
+  assert.equal(calls,1);
+  for(const texts of [[],Array(5).fill('Text'),['x'.repeat(6001)],['ok',''],['ok',3]]) {
+    await assert.rejects(translateBatch('synthetic',texts,'zh-CN','chosen-model',new AbortController().signal,fetcher));
+  }
+  assert.equal(calls,1,'invalid batches must not reach the provider');
+});
+
+test('batch results cannot drop, duplicate, invent or apply incomplete paragraphs',async()=>{
+  const {translateBatch}=await import('../build/features/translate/index.js');
+  const request=events=>translateBatch('synthetic',['One.','Two.'],'zh-CN','chosen-model',new AbortController().signal,async()=>stream(events));
+  const invalid=[
+    {translations:[{id:0,text:'one'}]},
+    {translations:[{id:0,text:'one'},{id:0,text:'two'}]},
+    {translations:[{id:0,text:'one'},{id:2,text:'two'}]},
+    {translations:[{id:'0',text:'one'},{id:1,text:'two'}]},
+    {translations:[{id:0,text:'one'},{id:1,text:''}]},
+    ['one','two'],
+  ];
+  for(const result of invalid)await assert.rejects(request([{type:'response.completed',response:{status:'completed',output:[item(JSON.stringify(result))]}}]),/invalid_response/);
+  await assert.rejects(request([{type:'response.completed',response:{status:'completed',output:[item('private-canary-not-json')]}}]),error=>{
+    assert.equal(error.message,'invalid_response');assert.doesNotMatch(JSON.stringify(error),/private-canary/);return true;
+  });
+  await assert.rejects(request([{type:'response.output_text.delta',delta:JSON.stringify({translations:[{id:0,text:'one'},{id:1,text:'two'}]})}]));
+});

@@ -7,7 +7,7 @@ import {settings} from '../../shared/settings.js';
 import {object,requiredString} from '../../shared/validation.js';
 import {diagnosticOf,diagnosticText} from '../../shared/diagnostics.js';
 
-type Site={origin:string;automatic:boolean;pinned:boolean;translated:boolean;hover:boolean};
+type Site={origin:string;automatic:boolean;pinned:boolean;hover:boolean};
 type ModelState='loading'|'ready'|'failed';
 function element<T extends HTMLElement>(id:string,constructor:{new():T}):T {
   const node=document.getElementById(id);
@@ -18,8 +18,6 @@ function element<T extends HTMLElement>(id:string,constructor:{new():T}):T {
 export async function mountToolbar():Promise<void> {
   let config=settings(await request('settings'));
   const t=copy[config.locale],reading=readingCopy[config.locale],text=toolbarCopy[config.locale];
-  const home=element('home',HTMLElement),panel=element('settings-panel',HTMLElement);
-  const toggle=element('settings',HTMLButtonElement),primary=element('page-action',HTMLButtonElement);
   const target=element('target',HTMLSelectElement),model=element('model',HTMLSelectElement);
   const pinned=element('pinned',HTMLInputElement),automatic=element('automatic',HTMLInputElement),hover=element('hover',HTMLInputElement);
   const status=element('status',HTMLParagraphElement),accountLink=element('account',HTMLButtonElement);
@@ -38,11 +36,9 @@ export async function mountToolbar():Promise<void> {
 
   function render():void {
     const canTranslate=connected && models==='ready';
-    primary.textContent=site?.translated?reading.restore:checking?text.checking:initializingFailed?text.retry:signingIn?text.progress:!connected?t.connect:!site?text.openText:
-      models==='loading'?text.loading:models==='failed'?text.retry:text.page;
-    primary.disabled=busy || (!site?.translated && (checking || (!initializingFailed && connected && !!site && models==='loading')));
     target.disabled=busy || checking || (connected && models==='loading');
     model.disabled=busy || models!=='ready' || !connected;
+    refresh.textContent=models==='failed' && connected?text.retry:text.refresh;
     refresh.disabled=busy || checking || !connected || models==='loading';
     automatic.disabled=busy || !site || (!site.automatic && !canTranslate);
     pinned.disabled=busy || !site;
@@ -52,7 +48,8 @@ export async function mountToolbar():Promise<void> {
     const group=document.querySelector('.site-setting');
     if(group instanceof HTMLElement)group.hidden=!site;
     element('automatic-hint',HTMLElement).hidden=!site?.automatic;
-    accountLink.textContent=connected?text.connected:text.signedOut;
+    accountLink.disabled=busy || checking;
+    accountLink.textContent=checking?text.checking:initializingFailed?text.retry:signingIn?text.progress:connected?text.connected:text.signedOut;
     status.textContent=notice?.text ?? (!checking && !site?reading.noPage:'');
     status.classList.toggle('error',notice?.error===true);
   }
@@ -90,28 +87,15 @@ export async function mountToolbar():Promise<void> {
     }
     render();
   }
-  toggle.addEventListener('click',()=>{
-    panel.hidden=!panel.hidden;home.hidden=!panel.hidden;
-    toggle.textContent=panel.hidden?text.settings:text.back;
-    toggle.setAttribute('aria-expanded',String(!panel.hidden));
-  });
-  document.addEventListener('keydown',event=>{
-    if(event.key==='Escape' && !panel.hidden){event.preventDefault();toggle.click();toggle.focus();}
-  });
   element('text',HTMLButtonElement).addEventListener('click',()=>void run(()=>openWorkbench('translation-form')));
-  accountLink.addEventListener('click',()=>void run(()=>openWorkbench('account')));
+  accountLink.addEventListener('click',()=>void run(async()=>{
+    if(initializingFailed)await initialize();
+    else if(signingIn || connected)await openWorkbench('account');
+    else {await request('connect');window.close();}
+  }));
   target.addEventListener('change',()=>void run(save));
   model.addEventListener('change',()=>void run(save));
   refresh.addEventListener('click',()=>void run(loadModels));
-  primary.addEventListener('click',()=>void run(async()=>{
-    if(site?.translated){await request('pageAction',{action:'restore'});window.close();}
-    else if(initializingFailed)await initialize();
-    else if(signingIn)await openWorkbench('account');
-    else if(!connected){await request('connect');window.close();}
-    else if(!site)await openWorkbench('translation-form');
-    else if(models==='failed')await loadModels();
-    else if(models==='ready'){await save();await request('pageAction',{action:'translate'});window.close();}
-  }));
   function siteSwitch(control:HTMLInputElement,key:'automatic'|'pinned',operation:string):void {
     control.addEventListener('change',()=>{
       if(!site || busy)return;
@@ -139,7 +123,7 @@ export async function mountToolbar():Promise<void> {
     const [account,current]=await Promise.allSettled([request('status'),request('currentSite')]);
     if(current.status==='fulfilled') {
       const value=object(current.value);
-      site={origin:requiredString(value.origin),automatic:value.automatic===true,pinned:value.pinned===true,translated:value.translated===true,hover:value.hover===true};
+      site={origin:requiredString(value.origin),automatic:value.automatic===true,pinned:value.pinned===true,hover:value.hover===true};
       automatic.checked=site.automatic;pinned.checked=site.pinned;hover.checked=site.hover;
       const host=element('host',HTMLParagraphElement);host.textContent=new URL(site.origin).hostname;host.title=host.textContent;
     } else if(errorCode(current.reason)!=='unsupported_page'){initializingFailed=true;showError(current.reason);}

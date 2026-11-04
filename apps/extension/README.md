@@ -5,25 +5,33 @@ See [installation](INSTALL.txt), [verification](../../docs/project/shadowinput-e
 [requirements](../../specs/013-browser-translation.md) and
 [ADR 037](../../docs/decisions/037-standalone-browser-extension.md).
 
-The compact popup shows a target language, one translate/restore action and the
-current website's automatic-translation switch. Settings holds the authorized
-model, refresh, optional Shift-hover and plain-input preview. Text translation
-and account management have separate links. Selection translation stays in the
-right-click menu. Alt+Shift+T toggles page translation; Alt+Shift+I previews the
-focused input. Chrome's shortcut settings can change these bindings.
+The popup exposes target language, authorized model/refresh, automatic
+translation, the pinned SI button, Shift-hover and input preview in one view.
+There is no secondary Settings page or large page-translation button. Text
+translation and account management have separate links; the account link also
+handles sign-in/progress/retry. Selection translation stays in the right-click
+menu. Alt+Shift+T toggles page translation; Alt+Shift+I previews the focused input.
+Chrome's shortcut settings can change these bindings.
 
 Opening the popup or using a page action adds one rounded SI button on that page.
 Click it to translate; click again to restore. Restore remains available without
-reloading models or contacting the provider. Loading, sign-in and retry states
-replace the main action when needed; unavailable models do not leave a blank list.
+reloading models or contacting the provider. Model loading and retry controls
+remain visible; unavailable models do not leave a blank list.
 
-Reading is capped at 120 paragraphs per run with two requests per document.
+Reading is capped at 120 paragraphs per run with two concurrent requests per
+document. Visible paragraphs are prioritized, and identical text is translated
+once per scan. The first paragraph gets its own request to keep the first result
+small. Later short paragraphs share a request, up to four paragraphs and 6,000
+source characters. Longer paragraphs (up to 8,000 characters) remain individual
+requests. A batch must complete with every requested paragraph ID exactly once;
+missing, duplicate, invalid or empty entries cannot be applied. Each completed
+batch appears without waiting for the rest of the page.
 Original DOM nodes remain intact. Output is inert text in isolated shadow roots.
 Changed paragraphs/drafts reject stale results. Hidden content, code, password
 fields and rich editors are excluded. Restore cancels that document's work.
 
 Site automation and a pinned SI button are both off by default. Each requests
-only the chosen origin's permission. In Settings, "Keep SI on this website"
+only the chosen origin's permission. "Keep SI on this website"
 shows the button on future visits without translating automatically. Turning off
 either option preserves the other's registration. Unpinning takes effect on the
 next visit; the current page keeps its already-opened button.
