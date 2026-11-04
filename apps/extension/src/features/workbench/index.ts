@@ -27,7 +27,8 @@ export function mountWorkbench(): void {
   const cancel = element('cancel',HTMLButtonElement);
   const retry = element('retry',HTMLButtonElement);
   const connect = element('connect',HTMLButtonElement);
-  const logout = element('logout',HTMLButtonElement);
+  const logout = document.querySelector<HTMLButtonElement>('#logout');
+  const signInOnly = document.querySelector<HTMLElement>('[data-sign-in-only]');
   const cancelSignIn = element('cancel-sign-in',HTMLButtonElement);
   const status = element('status',HTMLParagraphElement);
   const error = element('error',HTMLParagraphElement);
@@ -110,9 +111,10 @@ export function mountWorkbench(): void {
     if(!connected && !loadingModels)modelPlaceholder();
     if(wasConnected && !connected)schedule();
     connect.hidden=connected || data.pending === true || data.notice === 'verifying';
-    logout.hidden=!connected;
+    if(logout)logout.hidden=!connected;
+    if(signInOnly)signInOnly.hidden=connected;
     cancelSignIn.hidden=data.pending !== true;
-    status.textContent=data.notice === 'waiting' ? t.waiting : data.notice === 'verifying' ? t.verifying :
+    status.textContent=signInOnly && connected ? '' : data.notice === 'waiting' ? t.waiting : data.notice === 'verifying' ? t.verifying :
       connected ? (typeof data.email === 'string' && data.email ? data.email : t.connected) : t.signedOut;
     if (typeof data.notice === 'string' && lastNotice !== data.notice) {
       lastNotice=data.notice;
@@ -123,7 +125,7 @@ export function mountWorkbench(): void {
   language.addEventListener('change',()=>{applyCopy();void run(async()=>{await save();await refresh();});});
   connect.addEventListener('click',()=>void run(async()=>{await request('connect');await refresh();}));
   cancelSignIn.addEventListener('click',()=>void run(async()=>{await request('cancelSignIn');await refresh();}));
-  logout.addEventListener('click',()=>void run(async()=>{translation.update();await request('logout');model.replaceChildren();await refresh();}));
+  logout?.addEventListener('click',()=>void run(async()=>{translation.update();await request('logout');model.replaceChildren();await refresh();}));
   element('refresh',HTMLButtonElement).addEventListener('click',()=>void run(loadModels));
   source.addEventListener('compositionstart',()=>{composing=true;translation.update();});
   source.addEventListener('compositionend',()=>{composing=false;schedule();});

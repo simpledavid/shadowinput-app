@@ -130,6 +130,9 @@ workbench feature for account status, model/target preferences and automatic tex
 translation with cancellation/retry; it has no automatic selection/clipboard
 capture and does not persist drafts or results. Closing its tab follows the same
 worker-owned job cancellation as the full workbench.
+The quick window removes the signed-in account/email/logout row. It keeps only
+conditional sign-in recovery when disconnected or authorization is pending;
+account management remains in the popup and full workbench.
 
 Both text windows remove the Translate/Copy buttons and use one shared scheduler.
 The current nonempty draft starts after a 700 ms pause, only with a connected

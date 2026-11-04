@@ -26,6 +26,9 @@ page translations and site preferences. Reopen it from the extension popup or a
 reading action; its position is retained for the current document. A new page
 starts at the default position. Quick translation shares
 the existing account/model and translation behavior and starts with an empty draft.
+It omits the signed-in email/logout row; account management stays in the popup
+and full workbench. Sign-in controls appear only when disconnected or awaiting
+authorization, so a lost connection remains recoverable.
 Quick translation and the full workbench translate typed or pasted text after
 700 ms without changes. IME composition waits until text is committed. Editing
 text or changing target/model clears the result and cancels the old request;
