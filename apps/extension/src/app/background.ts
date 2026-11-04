@@ -7,7 +7,7 @@ import {object,requiredString} from '../shared/validation.js';
 import {store,ready} from './store.js';
 import {openQuickWindow} from './quick-window.js';
 import {pending} from './pending.js';
-import {preferences,savePreferences,currentSite,currentAction,setAutomatic,setPinned,contentConfig,sendAction,origin} from './sites.js';
+import {preferences,savePreferences,currentSite,currentAction,setAutomatic,retireSiteScripts,contentConfig,sendAction,origin} from './sites.js';
 
 const account = new Account(store);
 const page = chrome.runtime.getURL('panel.html');
@@ -88,7 +88,6 @@ async function dispatch(raw: unknown, sender: chrome.runtime.MessageSender): Pro
     case 'settings': return preferences();
     case 'saveSettings': return savePreferences(message.settings);
     case 'currentSite': return currentSite();
-    case 'setPinned': return ordered(()=>setPinned(requiredString(message.origin),message.enabled===true));
     case 'setAutomatic': return ordered(()=>setAutomatic(requiredString(message.origin),message.enabled===true));
     case 'pageAction': return currentAction(requiredString(message.action));
     case 'openQuick': return openQuickWindow();
@@ -146,6 +145,7 @@ chrome.commands.onCommand.addListener((command,tab)=>{
   if(tab?.id!==undefined)void sendAction(tab.id,command).catch(error=>notice(errorCode(error)));
 });
 chrome.runtime.onInstalled.addListener(()=>{
+  void ordered(retireSiteScripts).catch(error=>notice(errorCode(error)));
   chrome.contextMenus.removeAll(()=>{
     chrome.contextMenus.create({id:'selection',title:chrome.i18n.getMessage('selection'),contexts:['selection']});
     chrome.contextMenus.create({id:'toggle',title:chrome.i18n.getMessage('toggle'),contexts:['page']});

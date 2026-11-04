@@ -2,6 +2,23 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {currentSite,currentAction} from '../build/app/sites.js';
 
+test('a saved automatic rule cannot send content after its origin permission is revoked',async()=>{
+  const {contentConfig}=await import('../build/app/sites.js');
+  globalThis.chrome={permissions:{async contains(){return false;}},storage:{local:{async get(){return {
+    sites:{'https://example.invalid':true},settings:{model:'saved-model',target:'zh-CN',locale:'zh'},
+  };}}}};
+  assert.equal((await contentConfig('https://example.invalid/article')).automatic,false);
+});
+
+test('upgrading retires only legacy owned origin scripts without deleting preferences',async()=>{
+  const {retireSiteScripts}=await import('../build/app/sites.js');
+  const removed=[],id='site-'+'a'.repeat(64);
+  globalThis.chrome={scripting:{async getRegisteredContentScripts(){return [{id},{id:'unrelated-script'},{id:'site-invalid'}];},
+    async unregisterContentScripts(filter){removed.push(filter);}}};
+  await retireSiteScripts();
+  assert.deepEqual(removed,[{ids:[id]}]);
+});
+
 test('opening the popup queries reader-owned state without requesting translation',async()=>{
   const calls=[];
   globalThis.chrome={
@@ -10,7 +27,7 @@ test('opening the popup queries reader-owned state without requesting translatio
     storage:{local:{async get(){return {sites:{}};}}},
     scripting:{async executeScript(options){calls.push(options);}},
   };
-  assert.deepEqual(await currentSite(),{tabID:7,origin:'https://example.invalid',automatic:false,pinned:false,translated:true,hover:false});
+  assert.deepEqual(await currentSite(),{tabID:7,origin:'https://example.invalid',automatic:false,translated:true,hover:false});
   assert.deepEqual(calls.filter(call=>call.type),[{id:7,type:'readingState'}]);
   assert.equal(calls[0].args.length,1,'injection must carry only the manual marker');
   calls[0].func(calls[0].args[0]);
@@ -28,32 +45,26 @@ test('restricted pages cannot be inspected or injected',async()=>{
   assert.equal(injected,0);
 });
 
-test('pinning a button and automatic translation independently own one origin script',async()=>{
-  const {setPinned,setAutomatic,contentConfig}=await import('../build/app/sites.js');
-  const data={sites:{},buttons:{}},scripts=[];let granted=false;
+test('automatic translation requires an origin grant and does not change toolbar registration',async()=>{
+  const {setAutomatic,contentConfig}=await import('../build/app/sites.js');
+  const data={sites:{},settings:{model:'saved-model',target:'zh-CN',locale:'zh'}};let granted=false;
   globalThis.chrome={permissions:{async contains(){return granted;}},storage:{local:{
-    async get(key){return Array.isArray(key)?{...data}:{[key]:data[key]};},async set(values){Object.assign(data,values);}}},scripting:{
-    async getRegisteredContentScripts(){return [...scripts];},async unregisterContentScripts(){scripts.length=0;},
-    async registerContentScripts(values){scripts.push(...values);},
-  }};
+    async get(key){return {[key]:data[key]};},async set(values){Object.assign(data,values);}}}};
   const host='https://example.invalid';
-  await assert.rejects(setPinned(host,true),/site_permission/);assert.equal(scripts.length,0);
+  assert.equal((await contentConfig(host+'/article')).automatic,false);
+  await assert.rejects(setAutomatic(host,true),/site_permission/);
+  assert.deepEqual(data.sites,{});
   granted=true;
-  await setPinned(host,true);assert.equal(scripts.length,1);
-  assert.equal((await contentConfig(host+'/article')).automatic,false,'pinning never enables automatic translation');
-  await setAutomatic(host,true);assert.equal(scripts.length,1);
-  await setAutomatic(host,false);assert.equal(scripts.length,1,'a pinned launcher survives opting out of translation');
-  await setPinned(host,false);assert.equal(scripts.length,0);
+  await setAutomatic(host,true);
+  assert.equal((await contentConfig(host+'/article')).automatic,true);
+  await setAutomatic(host,false);
+  assert.equal((await contentConfig(host+'/article')).automatic,false);
 });
 
-test('failed preference persistence restores the prior script registration',async()=>{
-  const {setPinned}=await import('../build/app/sites.js');
-  const scripts=[];
-  globalThis.chrome={permissions:{async contains(){return true;}},storage:{local:{
-    async get(){return {sites:{},buttons:{}};},async set(){throw new Error('storage_failed');}}},scripting:{
-    async getRegisteredContentScripts(){return [...scripts];},async unregisterContentScripts(){scripts.length=0;},
-    async registerContentScripts(values){scripts.push(...values);},
-  }};
-  await assert.rejects(setPinned('https://example.invalid',true),/storage_failed/);
-  assert.equal(scripts.length,0);
+test('failed automatic preference persistence leaves the previous rule intact',async()=>{
+  const {setAutomatic}=await import('../build/app/sites.js');
+  const sites={'https://example.invalid':true};
+  globalThis.chrome={storage:{local:{async get(){return {sites};},async set(){throw new Error('storage_failed');}}}};
+  await assert.rejects(setAutomatic('https://example.invalid',false),/storage_failed/);
+  assert.deepEqual(sites,{'https://example.invalid':true});
 });

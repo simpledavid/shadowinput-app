@@ -23,12 +23,18 @@ function fixture(overrides={}) {
 }
 function visible(element){return element && !element.closest('[hidden]');}
 
+test('automatic toolbar visibility needs no per-site pin switch',async()=>{
+  const f=fixture();await f.start();
+  assert.equal(f.get('pinned'),null);
+  assert.equal(f.get('pin-hint'),null);
+});
+
 test('all controls are visible without a settings page or large page action',async()=>{
   const f=fixture();await f.start();
   assert.equal(f.get('page-action'),null);
   assert.equal(f.get('settings'),null);
   assert.equal(f.dom.window.document.querySelector('footer'),null);
-  for(const id of ['target','model','refresh','automatic','pinned','hover','input'])assert.equal(visible(f.get(id)),true,id);
+  for(const id of ['target','model','refresh','automatic','hover','input'])assert.equal(visible(f.get(id)),true,id);
   assert.equal(f.get('model').value,'saved-model');
   assert.equal(f.calls.some(call=>call.type==='pageAction'),false,'opening controls must not translate');
 });
@@ -135,13 +141,13 @@ test('a failed sign-out keeps account controls and allows a retry',async()=>{
   assert.equal(f.get('status').classList.contains('error'),true);
 });
 
-test('pinning requests only the current origin and never enables automatic translation',async()=>{
+test('automatic translation still requests only the selected origin',async()=>{
   const f=fixture();const grants=[];
   globalThis.chrome.permissions.request=async grant=>{grants.push(grant);return true;};
   await f.start();
-  f.get('pinned').checked=true;f.get('pinned').dispatchEvent(new f.dom.window.Event('change'));await tick();
+  f.get('automatic').checked=true;f.get('automatic').dispatchEvent(new f.dom.window.Event('change'));await tick();
   assert.deepEqual(grants,[{origins:['https://example.invalid/*']}]);
-  assert.deepEqual(f.calls.filter(call=>call.type==='setPinned'),[{type:'setPinned',origin:'https://example.invalid',enabled:true}]);
-  assert.equal(f.calls.some(call=>call.type==='setAutomatic' || call.type==='pageAction'),false);
-  assert.equal(f.get('automatic').checked,false);
+  assert.deepEqual(f.calls.filter(call=>call.type==='setAutomatic'),[{type:'setAutomatic',origin:'https://example.invalid',enabled:true}]);
+  assert.equal(f.calls.some(call=>call.type==='pageAction'),false);
+  assert.equal(f.get('automatic').checked,true);
 });

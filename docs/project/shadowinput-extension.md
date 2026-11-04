@@ -81,7 +81,7 @@ Publish this as a preview with those limits, not a Chrome Web Store release.
 
 ## Popup controls and page button
 
-Language, model/refresh, website automation, pinning, Shift-hover and input
+Language, model/refresh, website automation, Shift-hover and input
 preview are directly visible in the popup. Page translation/restoration uses the
 SI launcher, keyboard shortcut or context menu; the large popup action and
 secondary Settings view have been removed at the user's request. The inline account
@@ -96,31 +96,41 @@ validation. The reader owns page/hover state
 and reports only two booleans to the popup. Restoring originals bypasses
 configuration/model reads and cancels the document's work.
 
-Pinning and automatic translation share one origin-specific content registration
-but keep separate preferences. Saving either is serialized by the worker; failed
-preference writes roll back the registration. Manual popup inspection initializes
-the reader without triggering a saved automatic-translation rule. Persistent
-injection is limited to origins explicitly granted by the user.
+Ordinary top-level HTTP(S) navigation now loads the complete toolbar directly.
+The previous activeTab/per-origin-pin startup required opening the popup on a
+fresh website, which did not match the requested always-visible entry point.
+Static manifest content scripts replace the pin option and its dynamic
+registration. Provider authorization/API pages and the loopback callback are
+excluded; Chrome's site-access controls and restricted-page rules still apply.
+The expanded declaration may require Chrome approval after updating.
+Showing the toolbar sends no page text. Automatic translation retains its own
+saved origin opt-in and current permission check, including after a permission
+revocation. Updates retire only legacy owned dynamic registrations without
+changing automation preferences. Manual popup inspection does not itself start
+an automatic translation.
 
 The page toolbar has a drag grip, the two translation actions and a bottom close
 control. Dragging the grip or action buttons moves it after a small threshold;
 release does not fire an action. Arrow keys move the focused grip (Shift increases
 the step). Interrupted drags restore the previous position. Bounds are clamped on
-movement and viewport resize. Closing only hides the host; translations, pinning
+movement and viewport resize. Closing only hides the host; translations
 and automation stay intact. The popup's existing reading-state request or an
 explicit reading action reopens the same host. Position/visibility belong to the
-launcher for this document, with no storage or permissions added. A new document
+launcher for this document, without persistent position storage. A new document
 starts at the default position. Reader result updates never reopen a closed bar.
 
 Failing-then-passing DOM and worker tests cover directly visible controls, recovery,
-permission denial, independent site options, failed-save rollback and the trusted
+permission denial/revocation, automatic startup without text transmission,
+duplicate-injection prevention, legacy registration migration, failed saves and the trusted
 fragment routes. Browser-rendered synthetic fixtures cover Chinese/English and
 light/dark popup states. A real browser fixture displayed the rounded button;
 keyboard activation inserted bilingual fixture text and restored originals with
 no extra translation request. Automated coordinate clicking cannot access the
 closed shadow root in that browser tool; DOM click tests cover the same action.
 These checks do not prove Chrome installation, persistent permission prompts or
-live GPT inference. The website and installed extension have not been replaced.
+live GPT inference. A local unpacked build can be replaced independently of the
+website/public download; replacement still requires Chrome reload and webpage
+refresh before runtime acceptance.
 
 ## Quick translation window
 

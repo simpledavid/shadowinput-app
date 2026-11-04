@@ -5,7 +5,7 @@ shadowinput — Chrome 浏览器授权验证版
 3. 打开右上角“开发者模式”，点击“加载已解压的扩展程序”。
 4. 选择包含 manifest.json 的 shadowinput 文件夹。
 5. 点击扩展图标 → shadowinput →“使用 ChatGPT 继续”。
-6. 在 OpenAI 页面登录并确认授权；返回插件选择模型，再到普通网页点击扩展图标进行翻译。
+6. 在 OpenAI 页面登录并确认授权；返回插件选择模型，再到普通网页点击悬浮工具条下方的 SI 翻译本页，上方按钮打开快捷翻译窗口。
 
 这不是 Chrome 网上应用店发布版本。ZIP 需要先解压，不能直接双击安装。
 不需要桌面端、不需要 API Key。快捷翻译和文字工作台会在停止输入后自动将原文发送到 OpenAI；网页翻译在主动触发或单独开启本站自动翻译后发送正文。
@@ -13,6 +13,7 @@ shadowinput — Chrome 浏览器授权验证版
 已有用户确认独立登录与授权模型列表；完整真实翻译及网页兼容性仍待验收。
 当前包含网页双语、划词、Shift 悬停、普通输入框预览替换与文字翻译；这些浏览器路径仍需实装验收。
 自动翻译默认关闭，需要逐个网站授权。每次最多处理 120 段；恢复原文会取消当前网页任务。
+普通网页打开后直接显示完整工具条，可拖动或关闭；显示本身不会发送正文。Chrome 需要允许插件在网页上运行，新版扩大了网页脚本的匹配范围，更新时可能需要确认网站访问权限。OpenAI 授权/API 页面、授权回调和浏览器受限页面不显示。
 输入框必须先预览再应用；密码框、富文本和变化后的草稿不会自动替换。
 PDF、电子书、字幕、图片翻译尚未实现。
 如果授权失败，请保留界面上的错误提示；不要发送令牌或授权回调链接。
@@ -25,5 +26,8 @@ and select the shadowinput folder containing manifest.json. Open the extension,
 choose Continue with ChatGPT, and authorize on OpenAI's page. Select a model,
 type or paste text into Quick translation; it translates automatically after a pause. Select the result to copy normally. Sign-in/model discovery have manual evidence; completed translation remains pending.
 After updating, reload the extension and refresh the webpage to replace its content script.
+The complete floating toolbar appears on ordinary HTTP(S) pages without opening
+the popup first. Chrome must allow site access; the expanded content-script
+declaration may require approval after updating. Display alone sends no page text.
 Credentials remain in this Chrome profile; browser local storage is not an OS keychain.
 Source: https://github.com/simpledavid/shadowinput-app/tree/main/apps/extension
