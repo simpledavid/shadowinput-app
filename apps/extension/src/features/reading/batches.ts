@@ -8,15 +8,17 @@ function visible(node:Element):boolean {
   return rect.bottom>=0 && rect.top<height;
 }
 
-export function paragraphBatches(nodes:Element[]):ParagraphGroup[][] {
+export function paragraphBatches(nodes:Element[],limit:number):ParagraphGroup[][] {
+  const prioritized=nodes.map(node=>({node,visible:visible(node)}))
+    .sort((left,right)=>Number(right.visible)-Number(left.visible)).slice(0,limit);
   const grouped=new Map<string,ParagraphGroup>();
-  for(const node of nodes) {
+  for(const {node} of prioritized) {
     const text=originalText(node);
     if(!text)continue;
     const group=grouped.get(text);
     if(group)group.nodes.push(node);else grouped.set(text,{text,nodes:[node]});
   }
-  const groups=[...grouped.values()].sort((left,right)=>Number(right.nodes.some(visible))-Number(left.nodes.some(visible)));
+  const groups=[...grouped.values()];
   const first=groups.shift();
   if(!first)return [];
   // Keep the first result small; amortize request overhead across later paragraphs.

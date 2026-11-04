@@ -26,7 +26,11 @@ async function completion(access:string,input:string,instructions:string,model:s
   const response=await checked(await fetcher(provider.api+'/responses',{
     ...networkOptions(),signal:AbortSignal.any([signal,AbortSignal.timeout(60_000)]),method:'POST',
     headers:{Authorization:'Bearer '+access,'Content-Type':'application/json'},
-    body:JSON.stringify({model,store:false,stream:true,instructions,input:[{role:'user',content:input}]}),
+    body:JSON.stringify({
+      model,store:false,stream:true,instructions,input:[{role:'user',content:input}],
+      // Sol supports low effort; unknown models keep their own compatible defaults.
+      reasoning:model==='gpt-6.1-sol'?{effort:'low'}:undefined,
+    }),
   }));
   return readTranslation(response);
 }

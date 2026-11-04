@@ -110,10 +110,10 @@ export class Reader {
     if(this.activeScan===this.generation || !this.enabled || this.count>=120)return;
     const generation=this.generation;
     this.activeScan=generation;
-    const nodes=paragraphs(this.document).filter(node=>!this.seen.has(node)).slice(0,120-this.count);
+    const nodes=paragraphs(this.document).filter(node=>!this.seen.has(node));
     if(!nodes.length){this.activeScan=undefined;return;}
-    const batches=paragraphBatches(nodes);
-    nodes.forEach(node=>this.seen.add(node));
+    const batches=paragraphBatches(nodes,120-this.count);
+    for(const batch of batches)for(const group of batch)for(const node of group.nodes)this.seen.add(node);
     const panel=card(this.document,this.config.locale,this.text.pageTitle,()=>this.stop());
     panel.button(this.text.restore,()=>this.stop());
     panel.body.textContent=this.text.working;
