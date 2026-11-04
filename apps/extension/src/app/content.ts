@@ -13,7 +13,7 @@ if(!Object.prototype.hasOwnProperty.call(globalThis,marker)) {
   chrome.runtime.onMessage.addListener((raw:unknown,sender,respond)=>{
     if(sender.id!==chrome.runtime.id)return false;
     const message=object(raw);
-    if(message.type==='readingState'){respond(reader.state());return false;}
+    if(message.type==='readingState'){reader.showLauncher();respond(reader.state());return false;}
     if(message.type!=='reading' || typeof message.action!=='string')return false;
     respond({ok:true});
     void reader.action(message.action).catch(error=>reader.showError(error));

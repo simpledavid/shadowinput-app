@@ -102,6 +102,16 @@ preference writes roll back the registration. Manual popup inspection initialize
 the reader without triggering a saved automatic-translation rule. Persistent
 injection is limited to origins explicitly granted by the user.
 
+The page toolbar has a drag grip, the two translation actions and a bottom close
+control. Dragging the grip or action buttons moves it after a small threshold;
+release does not fire an action. Arrow keys move the focused grip (Shift increases
+the step). Interrupted drags restore the previous position. Bounds are clamped on
+movement and viewport resize. Closing only hides the host; translations, pinning
+and automation stay intact. The popup's existing reading-state request or an
+explicit reading action reopens the same host. Position/visibility belong to the
+launcher for this document, with no storage or permissions added. A new document
+starts at the default position. Reader result updates never reopen a closed bar.
+
 Failing-then-passing DOM and worker tests cover directly visible controls, recovery,
 permission denial, independent site options, failed-save rollback and the trusted
 fragment routes. Browser-rendered synthetic fixtures cover Chinese/English and
