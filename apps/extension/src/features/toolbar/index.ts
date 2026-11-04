@@ -7,7 +7,7 @@ import {settings} from '../../shared/settings.js';
 import {object,requiredString} from '../../shared/validation.js';
 import {diagnosticOf,diagnosticText} from '../../shared/diagnostics.js';
 
-type Site={origin:string;automatic:boolean;pinned:boolean;hover:boolean};
+type Site={origin:string;automatic:boolean;hover:boolean};
 type ModelState='loading'|'ready'|'failed';
 function element<T extends HTMLElement>(id:string,constructor:{new():T}):T {
   const node=document.getElementById(id);
@@ -19,7 +19,7 @@ export async function mountToolbar():Promise<void> {
   let config=settings(await request('settings'));
   const t=copy[config.locale],reading=readingCopy[config.locale],text=toolbarCopy[config.locale];
   const target=element('target',HTMLSelectElement),model=element('model',HTMLSelectElement);
-  const pinned=element('pinned',HTMLInputElement),automatic=element('automatic',HTMLInputElement),hover=element('hover',HTMLInputElement);
+  const automatic=element('automatic',HTMLInputElement),hover=element('hover',HTMLInputElement);
   const status=element('status',HTMLParagraphElement),accountAction=element('account',HTMLButtonElement);
   const accountEmail=element('account-email',HTMLParagraphElement),accountPlan=element('account-plan',HTMLParagraphElement);
   const refresh=element('refresh',HTMLButtonElement),input=element('input',HTMLButtonElement);
@@ -42,7 +42,6 @@ export async function mountToolbar():Promise<void> {
     refresh.textContent=models==='failed' && connected?text.retry:text.refresh;
     refresh.disabled=busy || checking || !connected || models==='loading';
     automatic.disabled=busy || !site || (!site.automatic && !canTranslate);
-    pinned.disabled=busy || !site;
     hover.disabled=busy || !canTranslate;
     input.disabled=busy || !canTranslate;
     element('page-tools',HTMLElement).hidden=!site;
@@ -100,22 +99,18 @@ export async function mountToolbar():Promise<void> {
   target.addEventListener('change',()=>void run(save));
   model.addEventListener('change',()=>void run(save));
   refresh.addEventListener('click',()=>void run(loadModels));
-  function siteSwitch(control:HTMLInputElement,key:'automatic'|'pinned',operation:string):void {
-    control.addEventListener('change',()=>{
-      if(!site || busy)return;
-      const selected=site,enabled=control.checked;
-      // Request only this origin directly from the explicit user gesture.
-      const grant=enabled?chrome.permissions.request({origins:[selected.origin+'/*']}):Promise.resolve(true);
-      void run(async()=>{
-        try {
-          if(!await grant)throw new Error('site_permission');
-          await request(operation,{origin:selected.origin,enabled});selected[key]=enabled;
-        } finally {control.checked=selected[key];}
-      });
+  automatic.addEventListener('change',()=>{
+    if(!site || busy)return;
+    const selected=site,enabled=automatic.checked;
+    // Request only this origin directly from the explicit user gesture.
+    const grant=enabled?chrome.permissions.request({origins:[selected.origin+'/*']}):Promise.resolve(true);
+    void run(async()=>{
+      try {
+        if(!await grant)throw new Error('site_permission');
+        await request('setAutomatic',{origin:selected.origin,enabled});selected.automatic=enabled;
+      } finally {automatic.checked=selected.automatic;}
     });
-  }
-  siteSwitch(automatic,'automatic','setAutomatic');
-  siteSwitch(pinned,'pinned','setPinned');
+  });
   hover.addEventListener('change',()=>void run(async()=>{
     if(!site)return;
     try {await request('pageAction',{action:'hover'});site.hover=hover.checked;window.close();}
@@ -130,8 +125,8 @@ export async function mountToolbar():Promise<void> {
     const [account,current]=await Promise.allSettled([request('status'),request('currentSite')]);
     if(current.status==='fulfilled') {
       const value=object(current.value);
-      site={origin:requiredString(value.origin),automatic:value.automatic===true,pinned:value.pinned===true,hover:value.hover===true};
-      automatic.checked=site.automatic;pinned.checked=site.pinned;hover.checked=site.hover;
+      site={origin:requiredString(value.origin),automatic:value.automatic===true,hover:value.hover===true};
+      automatic.checked=site.automatic;hover.checked=site.hover;
       const host=element('host',HTMLParagraphElement);host.textContent=new URL(site.origin).hostname;host.title=host.textContent;
     } else if(errorCode(current.reason)!=='unsupported_page'){initializingFailed=true;showError(current.reason);}
     checking=false;

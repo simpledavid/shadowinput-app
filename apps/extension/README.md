@@ -6,7 +6,7 @@ See [installation](INSTALL.txt), [verification](../../docs/project/shadowinput-e
 [ADR 037](../../docs/decisions/037-standalone-browser-extension.md).
 
 The popup exposes target language, authorized model/refresh, automatic
-translation, the pinned SI button, Shift-hover and input preview in one view.
+translation, Shift-hover and input preview in one view.
 There is no secondary Settings page, large page-translation button or duplicate
 footer links. Text translation uses the page launcher's Quick translation window.
 An inline account card shows the signed-in
@@ -16,7 +16,10 @@ a failed sign-out remains recoverable. Selection translation stays in the right-
 menu. Alt+Shift+T toggles page translation; Alt+Shift+I previews the focused input.
 Chrome's shortcut settings can change these bindings.
 
-Opening the popup or using a page action adds a floating toolbar. The upper
+Ordinary HTTP(S) pages display the complete floating toolbar on load, without
+opening the extension popup first. Chrome must allow the extension to run on the
+site; its site-access controls still apply. Provider authorization/API pages,
+the loopback callback and browser-restricted pages are excluded. The upper
 window icon opens Quick translation in a separate compact browser window; the
 lower SI button translates/restores the current page. Drag the grip or an action
 button to reposition the toolbar; arrow keys on the focused grip also move it.
@@ -60,11 +63,13 @@ Original DOM nodes remain intact. Output is inert text in isolated shadow roots.
 Changed paragraphs/drafts reject stale results. Hidden content, code, password
 fields and rich editors are excluded. Restore cancels that document's work.
 
-Site automation and a pinned SI button are both off by default. Each requests
-only the chosen origin's permission. "Keep SI on this website"
-shows the button on future visits without translating automatically. Turning off
-either option preserves the other's registration. Unpinning takes effect on the
-next visit; the current page keeps its already-opened button.
+Displaying the toolbar does not read or send page text for translation. Static
+top-level content scripts replace the old per-site pin option; this expands the
+extension's declared webpage access and may require Chrome approval on update.
+Automatic translation remains off by default and requests only the chosen
+origin's permission. Both the saved opt-in and a current permission grant are
+required. Disabling it leaves the toolbar available. Upgrades remove only legacy
+owned dynamic registrations; the existing automatic preferences remain intact.
 Original text and translations are never persisted. A bounded document cache
 clears on restore/navigation. No analytics, desktop helper, API-key requirement,
 ChatGPT cookie access or desktop credential sharing is included.

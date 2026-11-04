@@ -16,16 +16,19 @@ export async function savePreferences(value:unknown):Promise<void> {
   await chrome.storage.local.set({settings:settings(value)});
 }
 
-async function activeSite():Promise<{tabID:number;origin:string;automatic:boolean;pinned:boolean}> {
-  const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
-  if(tab?.id===undefined || !tab.url)throw new Error('unsupported_page');
-  const host=origin(tab.url),saved=await siteMaps();
-  const enabled=saved.sites[host]===true || saved.buttons[host]===true;
-  const granted=enabled && await chrome.permissions.contains({origins:[host+'/*']});
-  return {tabID:tab.id,origin:host,automatic:saved.sites[host]===true && granted,pinned:saved.buttons[host]===true && granted};
+async function automatic(host:string):Promise<boolean> {
+  const sites=await automaticSites();
+  return sites[host]===true && await chrome.permissions.contains({origins:[host+'/*']});
 }
 
-export async function currentSite():Promise<{tabID:number;origin:string;automatic:boolean;pinned:boolean;translated:boolean;hover:boolean}> {
+async function activeSite():Promise<{tabID:number;origin:string;automatic:boolean}> {
+  const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
+  if(tab?.id===undefined || !tab.url)throw new Error('unsupported_page');
+  const host=origin(tab.url);
+  return {tabID:tab.id,origin:host,automatic:await automatic(host)};
+}
+
+export async function currentSite():Promise<{tabID:number;origin:string;automatic:boolean;translated:boolean;hover:boolean}> {
   const site=await activeSite();
   await prepareReader(site.tabID);
   const state=object(await chrome.tabs.sendMessage(site.tabID,{type:'readingState'}));
@@ -38,37 +41,28 @@ export async function currentAction(action:string):Promise<void> {
   return sendAction(site.tabID,action);
 }
 
-async function siteMaps():Promise<{sites:Record<string,unknown>;buttons:Record<string,unknown>}> {
-  const saved=await chrome.storage.local.get(['sites','buttons']);
-  return {sites:saved.sites===undefined?{}:object(saved.sites),buttons:saved.buttons===undefined?{}:object(saved.buttons)};
+async function automaticSites():Promise<Record<string,unknown>> {
+  const saved=await chrome.storage.local.get('sites');
+  return saved.sites===undefined?{}:object(saved.sites);
 }
 
-async function registerSite(id:string,host:string,enabled:boolean):Promise<void> {
-  const registered=await chrome.scripting.getRegisteredContentScripts({ids:[id]});
-  if(!!registered.length===enabled)return;
-  if(enabled)await chrome.scripting.registerContentScripts([{id,matches:[host+'/*'],js:['content.js'],runAt:'document_idle',persistAcrossSessions:true}]);
-  else await chrome.scripting.unregisterContentScripts({ids:[id]});
+export async function retireSiteScripts():Promise<void> {
+  const registered=await chrome.scripting.getRegisteredContentScripts();
+  const ids=registered.filter(script=>/^site-[a-f0-9]{64}$/.test(script.id)).map(script=>script.id);
+  if(ids.length)await chrome.scripting.unregisterContentScripts({ids});
 }
 
-async function setSiteOption(host:string,enabled:boolean,key:'sites'|'buttons'):Promise<void> {
+export async function setAutomatic(host:string,enabled:boolean):Promise<void> {
   if(origin(host)!==host)throw new Error('invalid_input');
   if(enabled && !await chrome.permissions.contains({origins:[host+'/*']}))throw new Error('site_permission');
-  const saved=await siteMaps(),next={...saved,[key]:{...saved[key]}};
-  if(enabled)next[key][host]=true;else delete next[key][host];
-  const bytes=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(host)));
-  const id='site-'+Array.from(bytes).map(n=>n.toString(16).padStart(2,'0')).join('');
-  const previous=!!(await chrome.scripting.getRegisteredContentScripts({ids:[id]})).length;
-  await registerSite(id,host,next.sites[host]===true || next.buttons[host]===true);
-  try {await chrome.storage.local.set({[key]:next[key]});}
-  catch(error){await registerSite(id,host,previous);throw error;}
+  const sites={...await automaticSites()};
+  if(enabled)sites[host]=true;else delete sites[host];
+  await chrome.storage.local.set({sites});
 }
-export function setAutomatic(host:string,enabled:boolean):Promise<void> {return setSiteOption(host,enabled,'sites');}
-export function setPinned(host:string,enabled:boolean):Promise<void> {return setSiteOption(host,enabled,'buttons');}
 
 export async function contentConfig(url:string):Promise<Settings&{automatic:boolean}> {
-  const host=origin(url),saved=await chrome.storage.local.get('sites');
-  const sites=saved.sites===undefined?{}:object(saved.sites);
-  return {...await preferences(),automatic:sites[host]===true};
+  const host=origin(url);
+  return {...await preferences(),automatic:await automatic(host)};
 }
 
 async function prepareReader(tabID:number):Promise<void> {
