@@ -130,3 +130,22 @@ test('account and text section links retain trusted workbench access',async()=>{
     assert.equal(called,false);
   }
 });
+
+test('content batches use the owned account and cannot override model preferences',async()=>{
+  const original=globalThis.fetch;let calls=0;
+  local.account.session={email:'test@example.invalid',access:'current',refresh:'refresh',scope:'chatgpt.tokens.use.direct',expiresAt:Date.now()+3600000};
+  local.settings={target:'zh-CN',locale:'zh',model:'saved-model'};
+  globalThis.fetch=async(_url,options)=>{
+    calls++;const body=JSON.parse(options.body);
+    assert.equal(body.model,'saved-model');
+    assert.deepEqual(JSON.parse(body.input[0].content),[{id:0,text:'One.'},{id:1,text:'Two.'}]);
+    return new Response('data: '+JSON.stringify({type:'response.completed',response:{status:'completed',output:[{type:'message',role:'assistant',status:'completed',content:[{type:'output_text',text:JSON.stringify({translations:[{id:0,text:'一。'},{id:1,text:'二。'}]})}]}]}})+'\n\n');
+  };
+  try {
+    const reply=await new Promise(resolve=>events.message({type:'translateBatch',id:'batch',texts:['One.','Two.'],model:'injected-model'},content,resolve));
+    assert.deepEqual(reply,{ok:true,data:['一。','二。']});
+    assert.equal(events.message({type:'translateBatch'},external,()=>{throw new Error('untrusted callback');}),false);
+    const invalid=await new Promise(resolve=>events.message({type:'translateBatch',id:'oversized',texts:Array(5).fill('Text')},content,resolve));
+    assert.equal(invalid.ok,false);assert.equal(calls,1);
+  } finally {globalThis.fetch=original;}
+});

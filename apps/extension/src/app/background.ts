@@ -1,5 +1,5 @@
 import {Account} from '../features/connect/index.js';
-import {Jobs,models,translate} from '../features/translate/index.js';
+import {Jobs,models,translate,translateBatch} from '../features/translate/index.js';
 import {provider} from '../shared/config.js';
 import {errorCode} from '../shared/errors.js';
 import {diagnosticOf,parseDiagnostic,type Diagnostic} from '../shared/diagnostics.js';
@@ -95,6 +95,10 @@ async function dispatch(raw: unknown, sender: chrome.runtime.MessageSender): Pro
       const config=await preferences();
       return jobs.run(owner,requiredString(message.id),signal=>account.withAccess(access=>translate(access,requiredString(message.text),config.target,config.model,signal)));
     }
+    case 'translateBatch': {
+      const config=await preferences();
+      return jobs.run(owner,requiredString(message.id),signal=>account.withAccess(access=>translateBatch(access,message.texts,config.target,config.model,signal)));
+    }
     case 'translate': {
       return jobs.run(owner,crypto.randomUUID(),signal=>account.withAccess(access=>translate(access,requiredString(message.text),requiredString(message.target),requiredString(message.model),signal)));
     }
@@ -123,7 +127,7 @@ chrome.runtime.onMessage.addListener((message:unknown,sender,respond)=>{
     if(sender.tab?.id===undefined || sender.frameId!==0 || !sender.documentId)return false;
     try {
       origin(requiredString(sender.url));
-      if(!['translateBlock','contentConfig','cancel'].includes(String(object(message).type)))return false;
+      if(!['translateBlock','translateBatch','contentConfig','cancel'].includes(String(object(message).type)))return false;
     } catch {return false;}
   }
   if(sender.documentId && sender.tab?.id!==undefined)documentTabs.set(sender.documentId,sender.tab.id);

@@ -12,7 +12,7 @@ Source code, interface and branding are shadowinput's own implementation.
 - Bilingual paragraphs, restore, selection, optional Shift-hover and preview/apply
   for unchanged plain inputs.
 - Optional automatic translation per explicitly authorized website.
-- Compact stateful popup and one SI page button; independently opt in to keep
+- Single-view popup controls and one SI page button; independently opt in to keep
   that button on a website without automatic translation.
 - Chinese/English UI; Chinese/English/Japanese targets; cancellation and recovery.
 
@@ -78,15 +78,17 @@ credentials; it does not revoke the provider-side grant.
 
 Publish this as a preview with those limits, not a Chrome Web Store release.
 
-## Compact popup and page button
+## Popup controls and page button
 
-The popup keeps the target language, one translate/restore action and the current
-site's automation switch on its home view. Models, refresh, pinned button,
-Shift-hover and input preview are in Settings. Text and account links open the
-corresponding workbench sections; these fragment URLs retain exact extension-page
-sender validation. The reader owns page/hover state and reports only two booleans
-to the popup. Restoring originals bypasses configuration/model reads and cancels
-the document's work.
+Language, model/refresh, website automation, pinning, Shift-hover and input
+preview are directly visible in the popup. Page translation/restoration uses the
+SI launcher, keyboard shortcut or context menu; the large popup action and
+secondary Settings view have been removed at the user's request. The account
+entry owns sign-in/progress/retry, and model failures retain a retry control.
+Text and account links open the corresponding workbench sections; fragment URLs
+retain exact extension-page sender validation. The reader owns page/hover state
+and reports only two booleans to the popup. Restoring originals bypasses
+configuration/model reads and cancels the document's work.
 
 Pinning and automatic translation share one origin-specific content registration
 but keep separate preferences. Saving either is serialized by the worker; failed
@@ -94,7 +96,7 @@ preference writes roll back the registration. Manual popup inspection initialize
 the reader without triggering a saved automatic-translation rule. Persistent
 injection is limited to origins explicitly granted by the user.
 
-Failing-then-passing DOM and worker tests cover stateful actions, recovery,
+Failing-then-passing DOM and worker tests cover directly visible controls, recovery,
 permission denial, independent site options, failed-save rollback and the trusted
 fragment routes. Browser-rendered synthetic fixtures cover Chinese/English and
 light/dark popup states. A real browser fixture displayed the rounded button;
@@ -103,6 +105,30 @@ no extra translation request. Automated coordinate clicking cannot access the
 closed shadow root in that browser tool; DOM click tests cover the same action.
 These checks do not prove Chrome installation, persistent permission prompts or
 live GPT inference. The website and installed extension have not been replaced.
+
+## Translation request efficiency
+
+The user reported slow GPT-6.1 Sol webpage translation and supplied a card showing
+16 translated paragraphs. That shows reported progress, not measured latency or
+translation-quality acceptance. A deterministic reader fixture reproduced one
+provider call per paragraph and DOM-order scheduling even when the visible
+paragraph appeared later in the page.
+
+The reader now groups identical text, prioritizes the viewport and reserves a
+small first request. Remaining paragraphs use bounded batches; the
+[extension README](../../apps/extension/README.md) owns the limits. The worker
+uses the saved model/target and keeps the existing document/global concurrency
+caps. No automatic model switch, retry loop, new API options or remote batch-job
+service is introduced. Batch text travels through the existing completed-response
+stream parser, then exact ID/count/nonempty-text validation restores source order.
+A malformed batch is rejected as a whole. No source text or raw malformed output
+is added to diagnostics or persistent storage.
+
+Fixtures cover request reduction, first-visible priority, duplicates, long-text
+bounds, reordered IDs, malformed/incomplete results, document cancellation and
+changed paragraphs. They establish fewer calls, not a measured live Sol speedup.
+Real account timing and the model's batch-format compliance remain acceptance
+checks. A first response can still be delayed by provider/network latency.
 
 ## Empty-output regression
 
