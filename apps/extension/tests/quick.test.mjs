@@ -43,6 +43,31 @@ for(const page of ['quick','panel'])test(`${page} waits for typing to pause and 
   } finally {f.close();}
 });
 
+test('quick translation removes the signed-in account row while keeping connection recovery',async t=>{
+  t.mock.timers.enable({apis:['setTimeout','setInterval']});
+  const f=fixture();try {
+    await f.start();
+    assert.equal(f.dom.window.document.querySelector('.account').hidden,true);
+    assert.equal(f.get('logout'),null);
+    assert.equal(f.get('status').textContent,'','quick translation does not render the account email');
+    f.input('Hello');await advance(t);assert.equal(f.get('result').value,'你好。');
+    f.values.status={connected:false,pending:true,notice:'waiting'};await advance(t,2000);
+    assert.equal(f.dom.window.document.querySelector('.account').hidden,false);
+    assert.equal(f.get('cancel-sign-in').hidden,false);
+    assert.match(f.get('status').textContent,/授权页面/);
+    f.values.status={connected:false};await advance(t,2000);
+    assert.equal(f.get('connect').hidden,false);
+    f.values.status={connected:true,email:'test@example.invalid'};await advance(t,2000);
+    assert.equal(f.dom.window.document.querySelector('.account').hidden,true);
+  } finally {f.close();}
+  const full=fixture({},'panel');try {
+    await full.start();
+    assert.equal(full.dom.window.document.querySelector('.account').hidden,false);
+    assert.equal(full.get('logout').hidden,false);
+    assert.equal(full.get('status').textContent,'test@example.invalid');
+  } finally {full.close();}
+});
+
 test('IME composition is not translated until the committed text settles',async t=>{
   t.mock.timers.enable({apis:['setTimeout','setInterval']});
   const f=fixture();try {
