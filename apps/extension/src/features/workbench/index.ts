@@ -5,6 +5,7 @@ import {request} from '../../shared/rpc.js';
 import {object,requiredString} from '../../shared/validation.js';
 import {settings} from '../../shared/settings.js';
 import {diagnosticOf,diagnosticText} from '../../shared/diagnostics.js';
+import {AutomaticTranslation,type TranslationState} from './automatic.js';
 
 function element<T extends HTMLElement>(id: string, constructor: {new(): T}): T {
   const found = document.getElementById(id);
@@ -21,21 +22,41 @@ export function mountWorkbench(): void {
   const result = element('result',HTMLTextAreaElement);
   const model = element('model',HTMLSelectElement);
   const target = element('target',HTMLSelectElement);
-  const generate = element('translate',HTMLButtonElement);
+  const activity = element('translation-activity',HTMLElement);
+  const progress = element('translation-status',HTMLParagraphElement);
   const cancel = element('cancel',HTMLButtonElement);
-  const copyButton = element('copy',HTMLButtonElement);
+  const retry = element('retry',HTMLButtonElement);
   const connect = element('connect',HTMLButtonElement);
   const logout = element('logout',HTMLButtonElement);
   const cancelSignIn = element('cancel-sign-in',HTMLButtonElement);
   const status = element('status',HTMLParagraphElement);
   const error = element('error',HTMLParagraphElement);
-  let connected = false, busy = false, loadingModels = false, lastNotice = '';
-  let savedModel='';
+  let connected = false, loadingModels = false, lastNotice = '';
+  let savedModel='',composing=false,closed=false;
+  let translationState:TranslationState={kind:'idle'};
+  const translation=new AutomaticTranslation({
+    translate:async draft=>requiredString(await request('translate',draft)),
+    cancel:()=>request('cancel'),
+  },state=>{translationState=state;error.textContent='';renderTranslation();});
 
+  function schedule():void {
+    if(closed)return;
+    const ready=connected && !loadingModels && !model.disabled && !!model.value && !composing && !!source.value.trim();
+    translation.update(ready?{text:source.value,target:target.value,model:model.value}:undefined);
+  }
+  function renderTranslation():void {
+    if(closed)return;
+    const state=translationState,working=state.kind==='waiting' || state.kind==='translating';
+    result.value=state.kind==='complete'?state.text:'';
+    result.setAttribute('aria-busy',String(working));
+    progress.textContent=state.kind==='waiting'?t.settling:state.kind==='translating'?t.translating:'';
+    cancel.hidden=!working;retry.hidden=state.kind!=='error';
+    activity.hidden=!working && state.kind!=='error';
+    if(state.kind==='error')showError(state.reason);
+  }
   async function save():Promise<void> {
     await request('saveSettings',{settings:{target:target.value,model:model.value,locale:language.value}});
   }
-
   function applyCopy(): void {
     t = copy[language.value === 'zh' ? 'zh' : 'en'];
     document.documentElement.lang = language.value === 'zh' ? 'zh-CN' : 'en';
@@ -48,20 +69,14 @@ export function mountWorkbench(): void {
     Array.from(target.options).forEach((option,index)=>{option.textContent=t.languages[index] ?? '';});
     lastNotice = '';
     if(model.disabled || !model.options.length)modelPlaceholder();
-    updateButtons();
-  }
-  function updateButtons(): void {
-    generate.disabled = !connected || busy || !model.value || !source.value.trim();
-    generate.textContent = busy ? t.translating : t.translate;
-    copyButton.disabled = !result.value || busy;
-    cancel.hidden = !busy;
+    renderTranslation();
   }
   async function run(action:()=>Promise<void>): Promise<void> {
     error.textContent = '';
     try {await action();} catch (reason) {showError(reason);}
   }
   function showError(reason:unknown):void {
-    error.textContent=t.errors[errorCode(reason)]+diagnosticText(diagnosticOf(reason),t.stages);
+    if(!closed)error.textContent=t.errors[errorCode(reason)]+diagnosticText(diagnosticOf(reason),t.stages);
   }
   function modelPlaceholder():void {
     const labels=toolbarCopy[language.value==='zh'?'zh':'en'];
@@ -71,28 +86,29 @@ export function mountWorkbench(): void {
   async function loadModels(): Promise<void> {
     if (loadingModels) return;
     savedModel=model.value || savedModel;
-    loadingModels = true;modelPlaceholder();updateButtons();
+    loadingModels = true;modelPlaceholder();schedule();
     try {
       const list = await request('models');
+      if(closed || !connected)return;
       if (!Array.isArray(list)) throw new Error('invalid_response');
       if (!list.length) throw new Error('plan_permission');
-      const selected = savedModel;
       const options = list.map(value=>{
         const item=object(value);
         return new Option(requiredString(item.name),requiredString(item.id));
       });
       model.replaceChildren(...options);model.disabled=false;
-      if (options.some(option=>option.value === selected)) model.value=selected;
+      if (options.some(option=>option.value === savedModel)) model.value=savedModel;
       await save();
-      updateButtons();
     } catch(reason) {loadingModels=false;modelPlaceholder();throw reason;}
-    finally {loadingModels=false;updateButtons();}
+    finally {loadingModels=false;schedule();}
   }
   async function refresh(): Promise<void> {
     const data=object(await request('status'));
-    const newlyConnected=!connected && data.connected === true;
+    if(closed)return;
+    const wasConnected=connected;
     connected=data.connected === true;
     if(!connected && !loadingModels)modelPlaceholder();
+    if(wasConnected && !connected)schedule();
     connect.hidden=connected || data.pending === true || data.notice === 'verifying';
     logout.hidden=!connected;
     cancelSignIn.hidden=data.pending !== true;
@@ -102,35 +118,30 @@ export function mountWorkbench(): void {
       lastNotice=data.notice;
       if (data.notice in t.errors) error.textContent=t.errors[errorCode(new Error(data.notice))]+diagnosticText(data.diagnostic,t.stages);
     }
-    updateButtons();
-    if (newlyConnected) await loadModels();
+    if (!wasConnected && connected) await loadModels();
   }
   language.addEventListener('change',()=>{applyCopy();void run(async()=>{await save();await refresh();});});
   connect.addEventListener('click',()=>void run(async()=>{await request('connect');await refresh();}));
   cancelSignIn.addEventListener('click',()=>void run(async()=>{await request('cancelSignIn');await refresh();}));
-  logout.addEventListener('click',()=>void run(async()=>{await request('logout');model.replaceChildren();result.value='';await refresh();}));
+  logout.addEventListener('click',()=>void run(async()=>{translation.update();await request('logout');model.replaceChildren();await refresh();}));
   element('refresh',HTMLButtonElement).addEventListener('click',()=>void run(loadModels));
-  source.addEventListener('input',updateButtons);
-  model.addEventListener('change',()=>{updateButtons();void run(save);});
-  target.addEventListener('change',()=>void run(save));
-  element('translation-form',HTMLFormElement).addEventListener('submit',event=>{
-    event.preventDefault();
-    if (generate.disabled) return;
-    void run(async()=>{
-      busy=true;result.value='';copyButton.textContent=t.copy;updateButtons();
-      try {
-        result.value=requiredString(await request('translate',{text:source.value,target:target.value,model:model.value}));
-      } finally {busy=false;updateButtons();}
-    });
+  source.addEventListener('compositionstart',()=>{composing=true;translation.update();});
+  source.addEventListener('compositionend',()=>{composing=false;schedule();});
+  source.addEventListener('input',event=>{
+    if('isComposing' in event && event.isComposing===true){translation.update();return;}
+    schedule();
   });
-  cancel.addEventListener('click',()=>void run(async()=>{await request('cancel');}));
-  copyButton.addEventListener('click',()=>void run(async()=>{await navigator.clipboard.writeText(result.value);copyButton.textContent=t.copied;}));
+  for(const control of [model,target])control.addEventListener('change',()=>{schedule();void run(save);});
+  element('translation-form',HTMLFormElement).addEventListener('submit',event=>event.preventDefault());
+  cancel.addEventListener('click',()=>translation.update());
+  retry.addEventListener('click',schedule);
   applyCopy();
   void run(async()=>{
     const config=settings(await request('settings'));
+    if(closed)return;
     language.value=config.locale;target.value=config.target;savedModel=config.model;applyCopy();
     await refresh();
   });
   const timer=setInterval(()=>void refresh().catch(showError),2000);
-  window.addEventListener('pagehide',()=>clearInterval(timer),{once:true});
+  window.addEventListener('pagehide',()=>{closed=true;clearInterval(timer);translation.dispose();},{once:true});
 }
