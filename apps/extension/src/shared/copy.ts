@@ -13,7 +13,7 @@ export const copy = {
     plan:'使用你授权的 ChatGPT 套餐，受账号权限及用量限制；这里不显示剩余额度。',
     experimental:'此版本用于验证独立插件授权。只有登录并完成真实翻译后，才能确认你的账号可用。',
     signedOut:'连接后开始翻译', local:'登录凭据保存在当前 Chrome 配置中，不同步到云端。',
-    sourceLink:'开源代码', license:'基于 Arion · AGPL-3.0', languages:['简体中文','英语','日语'],
+    sourceLink:'开源代码', license:'AGPL-3.0', languages:['简体中文','英语','日语'],
     stages:{token_exchange:'授权码兑换',identity_keys:'获取身份公钥',identity_verify:'身份校验',models:'获取模型',translation:'翻译请求'} satisfies Record<Stage,string>,
     errors:{
       sign_in_required:'请重新登录 ChatGPT，然后重试。',
@@ -53,7 +53,7 @@ export const copy = {
     plan:'Uses your authorized ChatGPT plan, subject to account permissions and usage limits. Remaining quota is not shown here.',
     experimental:'This preview validates standalone extension authorization. Account compatibility requires successful sign-in and a real translation.',
     signedOut:'Connect to start translating',local:'Credentials stay in this Chrome profile and are not cloud-synced.',
-    sourceLink:'Source code',license:'Based on Arion · AGPL-3.0',languages:['Simplified Chinese','English','Japanese'],
+    sourceLink:'Source code',license:'AGPL-3.0',languages:['Simplified Chinese','English','Japanese'],
     stages:{token_exchange:'Token exchange',identity_keys:'Identity keys',identity_verify:'Identity verification',models:'Model discovery',translation:'Translation request'} satisfies Record<Stage,string>,
     errors:{
       sign_in_required:'Sign in to ChatGPT again, then retry.',plan_permission:'ChatGPT plan permission is missing. Reauthorize and check account eligibility.',
