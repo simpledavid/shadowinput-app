@@ -5,7 +5,7 @@ This derivative extends the native Pinyin entry point in [ADR 036](../docs/decis
 | ID | Observable requirement | Verification |
 | --- | --- | --- |
 | NPH-01 | Space/numbers commit ordinary words without waiting for a model. Only committed text starts a short continuation request; independent fast reranking may use the current candidate snapshot. | Native Rime/NSTextView fixture |
-| NPH-02 | Tab/click appends once at the unchanged caret. Continued typing, deletion, navigation, focus changes and opt-out revoke old work. | Native fixture, portable request-state and broker cancellation tests; real OS acceptance separately |
+| NPH-02 | Tab/click appends once at the unchanged caret. Continued typing, deletion, caret navigation, focus changes and opt-out revoke old work. | Native fixture, portable request-state and broker cancellation tests; real OS acceptance separately |
 | NPH-03 | Context contains only this input method's recent contiguous commits, is bounded and expires. No surrounding document reads or input history. | Shared UTF-8 context fixture and source inspection |
 | NPH-04 | Automatic phrases use local lookup or the local model regardless of writing-provider selection. No cloud fallback or implicit model download. | Local routing, opt-out and missing-model tests |
 | NPH-05 | Complete short suffixes only; reject echo, multiline/control output, repeated boundaries and obvious assistant replies. Generated suffixes additionally reject new numeric/date/promise tokens. | Generator and broker tests; filtering is heuristic |
@@ -15,6 +15,7 @@ This derivative extends the native Pinyin entry point in [ADR 036](../docs/decis
 | NPH-09 | Fast ranking never blocks the initial menu; navigation, focus, opt-out and newer revisions revoke proposals. Startup/quit cannot wait cyclically on the UI thread. | Native snapshot and lifecycle regression tests |
 | NPH-10 | With AI enabled, two-character committed prefixes offer a bounded personal/common phrase without requiring Qwen. Longest matching prefix wins; personal terms take priority, then list order. | App routing, domain matching and broker whitespace tests |
 | NPH-11 | Existing personal terms can be viewed, reordered, edited and removed. Saving and reloading updates subsequent suggestions, with no implicit input-history learning. | Profile save/edit/delete/reload through the app entry points |
-| NPH-12 | Only unmatched unfinished clauses with at least four Han characters reach Qwen after a cancellable quiet period. Native lookup starts immediately; late replies cannot insert at a changed caret. | App trigger/cancellation tests; native request and append-once fixtures |
+| NPH-12 | Unfinished clauses with at least two Han characters reach Qwen after a cancellable quiet period even with a dictionary match. Short words request a collocation suffix; longer context requests continuation. | App trigger/cancellation tests; native request and append-once fixtures |
+| NPH-13 | Dictionary lookup and Qwen run independently. Show the lexical choice first and append at most one distinct model suffix. Up/Down or mouse selection freezes the list; Tab/click delivers the selected suffix once. Empty or failed model output retains the dictionary choice. | Shared native choice state, AppKit transport/selection, Windows candidate mouse tests, broker isolation/opt-out tests |
 
 No claim of Windows runtime or editor-wide compatibility follows from a cross-build. No claim of full semantic preservation follows from surface filters.

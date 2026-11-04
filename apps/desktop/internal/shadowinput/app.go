@@ -32,7 +32,7 @@ import (
 
 type app struct {
 	dispatch          func(func())
-	candidates        *inputcandidate.Server
+	candidates        *inputcandidate.Phrases
 	rankingServer     *inputcandidate.Server
 	fastRanker        fastRuntime
 	rankEnabled       bool

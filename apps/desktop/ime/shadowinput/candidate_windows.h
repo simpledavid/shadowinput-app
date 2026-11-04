@@ -44,6 +44,7 @@ public:
  explicit ShadowCandidateClient(ShadowRequestKind kind=ShadowRequestKind::Phrase):state(std::make_shared<ShadowCandidateState>(kind)) {}
  void notify(HWND window,UINT message){readyWindow=window;readyMessage=message;}
  ~ShadowCandidateClient(){state->close();}
+ bool done(uint64_t revision){return state->done(revision);}
  void update(const std::string &source,uint64_t revision){state->update(source,revision);}
  std::wstring poll(uint64_t revision){
   if(auto request=state->begin(revision)) {

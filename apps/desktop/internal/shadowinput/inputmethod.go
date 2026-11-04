@@ -15,7 +15,7 @@ import (
 
 func (a *app) initInputMethod() {
 	a.initRanking()
-	server, err := inputcandidate.Start(a.directory, a.candidate)
+	server, err := inputcandidate.StartPhrases(a.directory, a.lookupPhrase, a.candidate)
 	if err != nil {
 		a.s.IMEStatus = "AI 候选服务未启动；普通输入不受影响。"
 		return
@@ -36,20 +36,19 @@ func (a *app) planPhrase(text string) phrasePlan {
 	if a.quitting || !a.s.CanSuggest() {
 		return phrasePlan{}
 	}
-	if phrase := domain.SuggestInputPhrase(text, a.s.Profile.Terms); phrase != "" {
-		return phrasePlan{phrase: phrase}
-	}
+	plan := phrasePlan{phrase: domain.SuggestInputPhrase(text, a.s.Profile.Terms)}
 	if !domain.ModelPhraseEligible(text) || a.local == nil || !a.local.Ready() || a.s.Local.Busy {
-		return phrasePlan{}
+		return plan
 	}
-	request := domain.WritingRequest{Task: domain.TaskCompletePhrase, Text: text, Model: rewriting.DefaultModel, Terms: append([]string(nil), a.s.Profile.Terms...)}
+	request := domain.WritingRequest{Task: domain.InputPhraseTask(text), Text: text, Model: rewriting.DefaultModel, Terms: append([]string(nil), a.s.Profile.Terms...)}
 	if style, ok := a.s.Profile.Style(a.s.StyleID); ok {
 		request.Style = &style
 	}
-	return phrasePlan{request: request, generator: localwriting.Generator{Chat: a.local}}
+	plan.request, plan.generator = request, localwriting.Generator{Chat: a.local}
+	return plan
 }
 
-func (a *app) candidate(ctx context.Context, text string) (string, error) {
+func (a *app) snapshotPhrase(ctx context.Context, text string) (phrasePlan, error) {
 	ready := make(chan phrasePlan, 1)
 	a.onMain(func() {
 		if ctx.Err() != nil {
@@ -58,17 +57,29 @@ func (a *app) candidate(ctx context.Context, text string) (string, error) {
 		}
 		ready <- a.planPhrase(text)
 	})
-	var s phrasePlan
 	select {
-	case s = <-ready:
+	case s := <-ready:
+		return s, ctx.Err()
 	case <-ctx.Done():
-		return "", ctx.Err()
+		return phrasePlan{}, ctx.Err()
 	}
-	if err := ctx.Err(); err != nil {
+}
+
+func (a *app) lookupPhrase(ctx context.Context, text string) (string, error) {
+	s, err := a.snapshotPhrase(ctx, text)
+	if err != nil {
 		return "", err
 	}
-	if s.phrase != "" {
-		return s.phrase, nil
+	if s.phrase == "" {
+		return "", inputcandidate.ErrUnavailable
+	}
+	return s.phrase, nil
+}
+
+func (a *app) candidate(ctx context.Context, text string) (string, error) {
+	s, err := a.snapshotPhrase(ctx, text)
+	if err != nil {
+		return "", err
 	}
 	if s.generator == nil {
 		return "", inputcandidate.ErrUnavailable

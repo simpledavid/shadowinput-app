@@ -32,6 +32,8 @@ jobs:
           export PATH="$(cygpath -u "$USERPROFILE")/.cargo/bin:$PATH"
           node scripts/stage-keyboard-ranker.mjs windows-amd64
           node scripts/test-keyboard-ranker.mjs
+      - name: Check shadowinput product labels
+        run: node --test scripts/lib/shadowinput-branding.test.mjs
       - name: Check phrase state and Windows HTTP transport
         shell: msys2 {0}
         run: node scripts/test-shadowinput-candidates.mjs

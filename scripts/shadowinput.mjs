@@ -24,6 +24,7 @@ function run(command, args, env = process.env, cwd = root) {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 if (mode === 'check') {
+  run(process.execPath, ['--test', 'scripts/lib/shadowinput-branding.test.mjs']);
   run('go', ['run', './apps/desktop/cmd/shadowinput-icon', '-check']);
   run(process.execPath, ['scripts/test-shadowinput-candidates.mjs']);
   run('go', ['test', '-race', './packages/core/...', './apps/desktop/cmd/shadowinput-icon', './apps/desktop/infrastructure/chatgptplan', './apps/desktop/infrastructure/localwriting', './apps/desktop/infrastructure/llm/...', './apps/desktop/infrastructure/rewriting', './apps/desktop/infrastructure/provision', './apps/desktop/cmd/arion-llm', './apps/desktop/infrastructure/writingprefs', './apps/desktop/infrastructure/inputcandidate', './apps/desktop/infrastructure/keyboardmodel', './apps/desktop/infrastructure/shadowime', './apps/desktop/ui/shared/writing', './apps/desktop/internal/oauthloopback', './apps/desktop/internal/shadowinput', './apps/desktop/ui/features/writing', './apps/desktop/ui/shared/copy']);
@@ -112,11 +113,11 @@ ${target === 'macos' ? 'macOS 14+ / Apple silicon (arm64). Move shadowinput.app 
 Install the system input method from Input method settings, then switch to shadowinput in the OS input menu.
 Experimental IME: macOS discovery and selection are confirmed; full editor/AI candidate behavior and Windows native use still need acceptance.
 实验性输入法：macOS 已确认系统发现和选中，完整编辑器 / AI 候选及 Windows 原生使用仍待验收。
-Type Pinyin directly in your editor. Space/numbers commit words; Tab appends the local AI phrase after a pause.
-Automatic phrases require explicit enablement and the desktop app running. Personal/common phrase lookup works without Qwen; model continuation needs a ready local model. ChatGPT is used only for explicit writing requests.
+Type Pinyin directly in your editor. Space/numbers commit words; Up/Down selects a local suggestion and Tab appends it.
+Automatic phrases require explicit enablement and the desktop app running. Personal/common phrase lookup works without Qwen; a ready local model can append a second word association from two committed Han characters. ChatGPT is used only for explicit writing requests.
 在“输入法设置”安装 / 启用后，从系统输入菜单切换到 shadowinput。
 直接输入拼音：空格 / 数字选普通候选；Tab 采纳 AI 候选；Esc 取消。
-AI 候选默认关闭；开启后保持主程序运行。短词先查个人及常用词库，无匹配的较长上下文才用 Qwen；Tab 只追加短语。自动联想不发送给 ChatGPT，不消耗套餐用量。
+AI 候选默认关闭；开启后保持主程序运行。词库先显示首选，Qwen 从两字起补充联想；上下键选择后固定列表，Tab 只追加所选短语。自动联想不发送给 ChatGPT，不消耗套餐用量。
 长文工具仍支持：选中文字 → Cmd/Ctrl+Shift+J → 生成 → 审阅 → 应用修改。
 If selection is unavailable, use Paste original or type a draft; copy the result manually.
 无法读取选区时，请用“粘贴原文”或手动输入，完成后复制结果。

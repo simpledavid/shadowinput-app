@@ -84,6 +84,22 @@ int main(int count,char **arguments) {
     SendMessageW(panel.handle(),WM_LBUTTONUP,0,MAKELPARAM(suggestionBounds.right/2,suggestionBounds.bottom/2));
     require(clicked && chosen.kind==CandidateAction::Select && chosen.index==SIZE_MAX && chosen.revision==31,"unnumbered suggestions remain clickable with their exact identity");
     require(GetFocus()==focused,"choosing an unnumbered suggestion does not take editor focus");
+    bool began=false;panel.onBeginSelection([&]{began=true;});
+    require(panel.show(owner,caret,{{L"负责人",L"",SIZE_MAX,false},{L"会议  \u21e5",L"",SIZE_MAX-1,false}},1,false,false,32,colors,2,false,16,false),"show dictionary and model choices");
+    GetClientRect(panel.handle(),&suggestionBounds);clicked=false;
+    LPARAM second=MAKELPARAM(suggestionBounds.right-12,suggestionBounds.bottom/2);
+    SendMessageW(panel.handle(),WM_LBUTTONDOWN,0,second);
+    require(began && !clicked,"mouse-down must freeze proposals before accepting a choice");
+    SendMessageW(panel.handle(),WM_LBUTTONUP,0,second);
+    require(clicked && chosen.index==SIZE_MAX-1 && chosen.revision==32 && GetFocus()==focused,"model choice identity and editor focus preserved");
+    panel.onBeginSelection({});
+    for(bool dark:{false,true}) {
+        colors.surface=dark?RGB(32,32,32):RGB(255,255,255);colors.text=dark?RGB(245,245,245):RGB(20,17,15);colors.border=dark?RGB(70,70,70):RGB(215,215,215);colors.selected=RGB(255,204,0);
+        require(panel.show(owner,caret,{{L"负责人",L"",SIZE_MAX,false},{L"会议  \u21e5",L"",SIZE_MAX-1,false}},1,false,false,33,colors,2,false,16,false),"render model and dictionary choices");
+        capture(panel.handle(),output.empty()?output:output/(dark?"phrases-dark.bmp":"phrases-light.bmp"));
+    }
+
+
     for (bool dark:{false,true}) for (int size:{14,16,20}) {
         colors.surface=dark?RGB(32,32,32):RGB(255,255,255); colors.text=dark?RGB(245,245,245):RGB(20,17,15); colors.border=dark?RGB(70,70,70):RGB(215,215,215); colors.selected=RGB(255,204,0);
         require(panel.show(owner,caret,{{L"\u7b11\u8138",L"",0},{L"\u5fae\u7b11",L"",1},{L"\u5f00\u5fc3",L"",2},{L"\U0001f60a",L"",3,true}},3,false,true,3,colors,9,false,size),"show typed Emoji among Chinese candidates");

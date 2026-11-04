@@ -23,6 +23,7 @@ typedef NS_ENUM(NSInteger, ArionCandidateAppearance) {
 // 0.3 s and 0.2 s, Chatterfly's durations. All calls run on the main thread.
 @interface ArionCandidatePanel : NSObject
 @property(nonatomic) ArionCandidateSize size;
+@property(nonatomic) BOOL showsNumbers;
 @property(nonatomic) ArionCandidateAppearance appearance;
 // The highlighted candidate's fill and text in the light and dark
 // appearances, as the app resolves them (application.Highlight); nil keeps

@@ -37,7 +37,7 @@ func Prepare(r domain.WritingRequest) (prompt.ChatRequest, error) {
 		}
 	}
 	budget := min(2048, max(512, utf8.RuneCountInString(r.Text)*2+256))
-	if r.Task == domain.TaskCompletePhrase {
+	if r.Task == domain.TaskCompletePhrase || r.Task == domain.TaskAssociateWord {
 		budget = 64
 	}
 	return prompt.ChatRequest{

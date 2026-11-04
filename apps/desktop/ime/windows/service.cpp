@@ -307,7 +307,7 @@ class Service final : public ITfTextInputProcessorEx, public ITfThreadMgrEventSi
     }
     bool wantsKey(const NativeKey &key) {
 #ifdef SHADOWINPUT_IME
-        if(typing->hasAI() && key.symbol==0xff09 && !key.modifiers)return true;
+        if(typing->hasAI() && (key.symbol==0xff09 || key.symbol==0xff52 || key.symbol==0xff54) && !key.modifiers)return true;
 #endif
         if (!session.empty() || typing->composing() || shiftTap.held) return true;
         return typing->available() && (key.shift || arion_key_action(key.symbol,key.modifiers,typing->isASCII())!=ARION_KEY_PASS);
@@ -421,7 +421,8 @@ public:
         };
 #ifdef SHADOWINPUT_IME
         typing->setAIPanel(&aiCandidates);
-        aiCandidates.onAction([this](const CandidateAction &action){TypingCommand command;command.kind=TypingCommand::Choose;command.engineIndex=SIZE_MAX;command.revision=action.revision;keyRequest(command);});
+        aiCandidates.onBeginSelection([this]{typing->freezePhrases();});
+        aiCandidates.onAction([this](const CandidateAction &action){TypingCommand command;command.kind=TypingCommand::Choose;command.engineIndex=action.index;command.revision=action.revision;keyRequest(command);});
 #endif
         candidates.onAction([this](const CandidateAction &action) {
             TypingCommand command; command.revision=action.revision; command.engineIndex=action.index;

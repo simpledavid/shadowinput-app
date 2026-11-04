@@ -35,9 +35,13 @@ type Server struct {
 // Start binds only an OS-assigned loopback port. The per-launch capability is
 // stored with user-only permissions; browsers are refused even with a token.
 func Start(directory string, generate Generate) (*Server, error) {
-	return start(directory, generate, requestPolicy{path: "/candidate", file: "candidate.endpoint", limit: 1024, budget: 2 * time.Second,
+	return start(directory, generate, phrasePolicy("candidate"))
+}
+
+func phrasePolicy(name string) requestPolicy {
+	return requestPolicy{path: "/" + name, file: name + ".endpoint", limit: 1024, budget: 2 * time.Second,
 		validInput:  domain.ValidPhraseContext,
-		validResult: ValidResult})
+		validResult: ValidResult}
 }
 
 type requestPolicy struct {

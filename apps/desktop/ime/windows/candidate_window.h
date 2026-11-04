@@ -50,6 +50,7 @@ class CandidateWindow {
     std::vector<IDWriteTextLayout*> emojiLayouts;
     HRESULT renderError=S_OK;
     std::function<void(const CandidateAction&)> action;
+    std::function<void()> beginSelection;
 
     int scale(int value) const { return MulDiv(value,static_cast<int>(dpi),96); }
     RECT textBounds(const RECT &cell) const {
@@ -67,6 +68,11 @@ class CandidateWindow {
         if (message==WM_ERASEBKGND) return 1;
         if (message==WM_PAINT) { PAINTSTRUCT paint{}; BeginPaint(handle,&paint); self->paint(); EndPaint(handle,&paint); return 0; }
         if (message==WM_PRINTCLIENT) { self->paint(reinterpret_cast<HDC>(wp)); return 0; }
+        if(message==WM_LBUTTONDOWN && self->beginSelection) {
+            POINT point{GET_X_LPARAM(lp),GET_Y_LPARAM(lp)};
+            for(const auto &rect:self->rectangles)if(PtInRect(&rect,point)){self->beginSelection();break;}
+            return 0;
+        }
         if (message==WM_LBUTTONUP) {
             POINT point{GET_X_LPARAM(lp),GET_Y_LPARAM(lp)};
             CandidateAction selected; selected.revision=self->revision;
@@ -107,6 +113,7 @@ public:
     ~CandidateWindow() { clearLayouts(); if (window) DestroyWindow(window); UnregisterClassW(L"Arion.NativeCandidates",module); }
     CandidateWindow(const CandidateWindow&)=delete;
     CandidateWindow &operator=(const CandidateWindow&)=delete;
+    void onBeginSelection(std::function<void()> callback){beginSelection=std::move(callback);}
     void onAction(std::function<void(const CandidateAction&)> callback) { action=std::move(callback); }
     HWND handle() const { return window; }
     bool visible() const { return window && IsWindowVisible(window); }

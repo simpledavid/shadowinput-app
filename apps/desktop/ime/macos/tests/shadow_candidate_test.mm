@@ -6,23 +6,57 @@
 
 // A deterministic transport response exercises the native scheduling/cancel path.
 @interface PhraseProtocol : NSURLProtocol
+@property BOOL stopped;
 @end
 @implementation PhraseProtocol
-+ (BOOL)canInitWithRequest:(NSURLRequest *)request { return [request.URL.path isEqual:@"/candidate"]; }
++ (BOOL)canInitWithRequest:(NSURLRequest *)request { return [request.URL.path isEqual:@"/candidate"] || [request.URL.path isEqual:@"/phrase-model"]; }
 + (NSURLRequest *)canonicalRequestForRequest:(NSURLRequest *)request { return request; }
-- (void)startLoading {
- NSHTTPURLResponse *response=[[NSHTTPURLResponse alloc] initWithURL:self.request.URL statusCode:200 HTTPVersion:@"HTTP/1.1" headerFields:nil];
- [self.client URLProtocol:self didReceiveResponse:response cacheStoragePolicy:NSURLCacheStorageNotAllowed];
- [self.client URLProtocol:self didLoadData:[@"负责人" dataUsingEncoding:NSUTF8StringEncoding]];
- [self.client URLProtocolDidFinishLoading:self];
+- (void)deliver {
+ @synchronized(self) {
+  if(self.stopped)return;
+  NSHTTPURLResponse *response=[[NSHTTPURLResponse alloc] initWithURL:self.request.URL statusCode:200 HTTPVersion:@"HTTP/1.1" headerFields:nil];
+  [self.client URLProtocol:self didReceiveResponse:response cacheStoragePolicy:NSURLCacheStorageNotAllowed];
+  NSString *text=[self.request.URL.path isEqual:@"/candidate"]?@"负责人":@"会议";
+  [self.client URLProtocol:self didLoadData:[text dataUsingEncoding:NSUTF8StringEncoding]];
+  [self.client URLProtocolDidFinishLoading:self];
+ }
 }
-- (void)stopLoading {}
+- (void)startLoading {
+ if([self.request.URL.path isEqual:@"/phrase-model"])
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW,100*NSEC_PER_MSEC),dispatch_get_main_queue(),^{[self deliver];});
+ else [self deliver];
+}
+- (void)stopLoading {@synchronized(self){self.stopped=YES;}}
+
 @end
+
+static void capturePhrasePanel(ShadowCandidate *candidate) {
+ NSString *directory=NSProcessInfo.processInfo.environment[@"SHADOWINPUT_NATIVE_SCREENSHOTS"];
+ if(!directory.isAbsolutePath)return;
+ [NSFileManager.defaultManager createDirectoryAtPath:directory withIntermediateDirectories:YES attributes:nil error:nil];
+ for(NSNumber *dark in @[@NO,@YES]) {
+  candidate.panel.appearance=dark.boolValue?ArionCandidateAppearanceDark:ArionCandidateAppearanceLight;
+  for(NSUInteger selected=0;selected<2;selected++) {
+   NSMutableArray *items=[candidate.texts mutableCopy];
+   items[selected]=[items[selected] stringByAppendingString:@"  ⇥"];
+   [candidate.panel showCandidates:items highlighted:selected lastPage:YES revision:candidate.revision caretRect:NSMakeRect(200,300,1,20)];
+   [NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:.35]];
+   NSView *view=[candidate.panel valueForKey:@"view"];
+   NSBitmapImageRep *bitmap=[view bitmapImageRepForCachingDisplayInRect:view.bounds];
+   [view cacheDisplayInRect:view.bounds toBitmapImageRep:bitmap];
+   NSString *name=[NSString stringWithFormat:@"native-phrases-%@-%lu.png",dark.boolValue?@"dark":@"light",(unsigned long)selected];
+   require([[bitmap representationUsingType:NSBitmapImageFileTypePNG properties:@{}] writeToFile:[directory stringByAppendingPathComponent:name] atomically:YES],@"save synthetic native phrase render");
+  }
+ }
+ [candidate.panel hide];
+}
 
 static void checkPhraseDelivery(NSString *directory) {
  setenv("SHADOWINPUT_TEST_DIRECTORY",directory.UTF8String,1);
  NSString *endpoint=[directory stringByAppendingPathComponent:@"candidate.endpoint"];
  require([@"127.0.0.1:1\nABCDEFGHIJKLMNOPQRSTUVWX\n" writeToFile:endpoint atomically:YES encoding:NSUTF8StringEncoding error:nil],@"isolated phrase discovery");
+ NSString *modelEndpoint=[directory stringByAppendingPathComponent:@"phrase-model.endpoint"];
+ require([@"127.0.0.1:1\nABCDEFGHIJKLMNOPQRSTUVWX\n" writeToFile:modelEndpoint atomically:YES encoding:NSUTF8StringEncoding error:nil],@"isolated model discovery");
  ShadowCandidate *candidate=[ShadowCandidate new];
  [candidate.session invalidateAndCancel];
  NSURLSessionConfiguration *config=NSURLSessionConfiguration.ephemeralSessionConfiguration;
@@ -34,12 +68,24 @@ static void checkPhraseDelivery(NSString *directory) {
  require(candidate.task!=nil,@"dictionary transport must begin immediately, without a native debounce");
  NSDate *deadline=[NSDate dateWithTimeIntervalSinceNow:2];
  while(deliveries==0 && deadline.timeIntervalSinceNow>0)[NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:.005]];
- require(deliveries==1 && [candidate.text isEqual:@"负责人"],@"bounded phrase reaches native candidate");
+ require(deliveries==1 && [candidate.text isEqual:@"负责人"],@"bounded phrase reaches native candidate before model");
+ while(deliveries<2 && deadline.timeIntervalSinceNow>0)[NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:.005]];
+ require(candidate.texts.count==2 && [candidate.text isEqual:@"负责人"] && [[candidate textAtIndex:1] isEqual:@"会议"],@"model appends without replacing first choice");
+ require([candidate moveSelection:1] && [candidate.text isEqual:@"会议"],@"keyboard selects second model suffix");
+ capturePhrasePanel(candidate);
+ NSUInteger before=deliveries;
  [candidate update:@"公司" revision:2];[candidate clear];
  [NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:.3]];
- require(deliveries==1 && !candidate.text.length,@"cleared request never delivers a stale phrase");
- [candidate.timer invalidate];[candidate.session invalidateAndCancel];
+ require(deliveries==before && !candidate.text.length,@"cleared request never delivers a stale phrase");
+ [candidate update:@"部门" revision:3];
+ deadline=[NSDate dateWithTimeIntervalSinceNow:2];
+ while(!candidate.text && deadline.timeIntervalSinceNow>0)[NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:.005]];
+ require([candidate moveSelection:1],@"selection freezes pending model");
+ [NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:.2]];
+ require(candidate.texts.count==1 && [candidate.text isEqual:@"负责人"],@"late model cannot change a navigating list");
+ [candidate clear];[candidate.timer invalidate];[candidate.session invalidateAndCancel];
  [NSFileManager.defaultManager removeItemAtPath:endpoint error:nil];
+ [NSFileManager.defaultManager removeItemAtPath:modelEndpoint error:nil];
 }
 int main(int argc,const char *argv[]){
  @autoreleasepool {

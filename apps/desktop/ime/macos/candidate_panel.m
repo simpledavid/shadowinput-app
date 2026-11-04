@@ -85,7 +85,7 @@ static NSColor *srgb(CGFloat r, CGFloat g, CGFloat b, CGFloat a) {
             BOOL hot = current && index == self.highlighted;
             CGFloat x = NSMinX(item) + kSelectionPadding;
             // Number keys act on the current row only, so only it is numbered.
-            if (current) {
+            if (current && self.preset.numberWidth>0) {
                 NSString *label = [NSString stringWithFormat:@"%lu", (unsigned long)(index + 1)];
                 NSDictionary *style = hot ? hotNumberStyle : numberStyle;
                 CGFloat width = [label sizeWithAttributes:style].width;
@@ -385,6 +385,7 @@ static NSColor *srgb(CGFloat r, CGFloat g, CGFloat b, CGFloat a) {
 - (instancetype)init {
     if (!(self = [super init])) return nil;
     _size = ArionCandidateSizeMedium;
+    _showsNumbers = YES;
     self.window = [[ArionCandidateWindow alloc] initWithContentRect:NSZeroRect
         styleMask:NSWindowStyleMaskBorderless | NSWindowStyleMaskNonactivatingPanel
           backing:NSBackingStoreBuffered defer:YES];
@@ -446,6 +447,7 @@ static NSColor *srgb(CGFloat r, CGFloat g, CGFloat b, CGFloat a) {
     self.reshow = nil;
     NSUInteger generation = ++self.showGeneration;
     Preset preset = kPresets[self.size];
+    if(!self.showsNumbers)preset.numberWidth=0;
     BOOL chevron = expanded || more;
     NSSize content = [self.view contentSizeForRows:rows expanded:expanded chevron:chevron preset:preset widths:NULL];
     NSSize size = NSMakeSize(content.width + 2 * kShadowMargin, content.height + 2 * kShadowMargin);

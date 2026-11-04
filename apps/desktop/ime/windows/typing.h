@@ -11,6 +11,7 @@
 #include <cctype>
 #ifdef SHADOWINPUT_IME
 #include "../shadowinput/candidate_windows.h"
+#include "../shadowinput/phrase_choices.h"
 #endif
 
 struct TypingCommand {
@@ -37,12 +38,13 @@ class Typing {
     CandidateWindow &panel;
 #ifdef SHADOWINPUT_IME
     ShadowCandidateClient ai;
+    ShadowCandidateClient aiModel{ShadowRequestKind::PhraseModel};
     CandidateWindow *aiPanel=nullptr;
-    std::wstring aiText;
-    uint64_t aiRevision=0;
+    ShadowPhraseChoices aiChoices{};
+    uint64_t aiRevision=0,aiRequestRevision=0;
     ShadowContinuation continuation{};
     ITfRange *continuationAnchor=nullptr;
-    void clearAI() { if(!aiText.empty())accessible->hide(); aiText.clear(); aiRevision=0; ai.update({},revision); if(aiPanel)aiPanel->hide(); }
+    void clearAI() { if(aiChoices.count)accessible->hide();shadow_choices_reset(&aiChoices);aiRevision=0;aiRequestRevision=0;ai.update({},revision);aiModel.update({},revision);if(aiPanel)aiPanel->hide(); }
     void clearContinuation() {
         clearAI(); shadow_context_clear(&continuation);
         if(continuationAnchor){continuationAnchor->Release();continuationAnchor=nullptr;}
@@ -62,12 +64,15 @@ class Typing {
     void requestAI() {
         clearAI();
         if (composition || ascii || !continuationAnchor) return;
-        ai.update(shadow_context_text(&continuation,GetTickCount64()),revision);
-        ai.poll(revision);
+        aiRequestRevision=revision;
+        auto source=shadow_context_text(&continuation,GetTickCount64());
+        ai.update(source,revision);aiModel.update(source,revision);
+        ai.poll(revision);aiModel.poll(revision);
     }
-    HRESULT commitAI(TfEditCookie cookie,bool &handled) {
-        if(!shadowAIEnabled() || aiText.empty() || aiRevision!=revision || !sameContinuation(cookie)) return S_FALSE;
-        std::wstring text=aiText;ITfRange *range=nullptr;
+    HRESULT commitAI(TfEditCookie cookie,bool &handled,size_t index) {
+        const char *choice=shadow_choices_at(&aiChoices,index);
+        if(!shadowAIEnabled() || !*choice || aiRevision!=revision || !sameContinuation(cookie))return S_FALSE;
+        std::wstring text=wide(choice);ITfRange *range=nullptr;
         HRESULT hr=continuationAnchor->Clone(&range);
         // Consume before calling the text store; never replace a composition.
         clearContinuation();++revision;
@@ -77,9 +82,14 @@ class Typing {
         previousCommit.clear();
         return hr;
     }
+    void showAIChoices() {
+        std::vector<std::wstring> items;
+        for(size_t i=0;i<aiChoices.count;++i)items.push_back(wide(shadow_choices_at(&aiChoices,i))+(i==aiChoices.selected?L" (Tab)":L""));
+        accessible->update(context,items,aiChoices.selected,items.size(),0);
+    }
     HRESULT layoutAI(TfEditCookie cookie) {
         if(!sameContinuation(cookie)){clearContinuation();return S_FALSE;}
-        if(!aiPanel || aiText.empty() || aiRevision!=revision)return S_FALSE;
+        if(!aiPanel || !aiChoices.count || aiRevision!=revision)return S_FALSE;
         if(!accessible->nativeAllowed()){aiPanel->hide();return S_FALSE;}
         ITfContextView *view=nullptr;RECT area{};BOOL clipped=FALSE;HWND owner=nullptr;
         HRESULT hr=context->GetActiveView(&view);
@@ -88,7 +98,9 @@ class Typing {
         if(view)view->Release();
         if(FAILED(hr) || clipped || area.bottom<=area.top){aiPanel->hide();return S_FALSE;}
         if(area.right==area.left)++area.right;
-        aiPanel->show(owner,area,{{aiText+L"  \u21e5",L"",SIZE_MAX,false}},0,false,false,revision,palette,1,false,textSize,false);
+        std::vector<NativeCandidate> items;
+        for(size_t i=0;i<aiChoices.count;++i)items.push_back({wide(shadow_choices_at(&aiChoices,i))+(i==aiChoices.selected?L"  \u21e5":L""),L"",SIZE_MAX-i,false});
+        aiPanel->show(owner,area,items,aiChoices.selected,false,false,revision,palette,1,false,textSize,false);
         accessible->bind(aiPanel->handle());
         return S_OK;
     }
@@ -240,7 +252,7 @@ class Typing {
 public:
 #ifdef SHADOWINPUT_IME
     void setAIPanel(CandidateWindow *value){aiPanel=value;}
-    void notifyPhrases(HWND window,UINT message){ai.notify(window,message);}
+    void notifyPhrases(HWND window,UINT message){ai.notify(window,message);aiModel.notify(window,message);}
     bool sameContinuation(TfEditCookie cookie) {
         if(composition || !context || !continuationAnchor || !*shadow_context_text(&continuation,GetTickCount64()))return false;
         TF_SELECTION selected{};ULONG count=0;LONG start=1,end=1;bool valid=false;
@@ -251,7 +263,8 @@ public:
         if(count)selected.range->Release();
         return valid;
     }
-    bool hasAI() const {return !aiText.empty() && aiRevision==revision;}
+    void freezePhrases(){if(aiChoices.count){aiChoices.locked=true;aiModel.update({},aiRequestRevision);}}
+    bool hasAI() const {return aiChoices.count && aiRevision==revision;}
 #endif
     bool observing() const {
 #ifdef SHADOWINPUT_IME
@@ -531,17 +544,26 @@ public:
             }
 #ifdef SHADOWINPUT_IME
             if(!shadowAIEnabled() || (!composition && !sameContinuation(cookie)))clearContinuation();
-            if(!composition && aiText.empty() && sameContinuation(cookie)) {
-                auto result=ai.poll(revision);
-                if(!result.empty()){aiText=result;++revision;aiRevision=revision;accessible->update(context,{aiText+L" (Tab)"},0,1,0);}
+            if(!composition && aiRequestRevision && sameContinuation(cookie)) {
+                auto lexical=ai.poll(aiRequestRevision),model=aiModel.poll(aiRequestRevision);
+                bool changed=false;
+                if(ai.done(aiRequestRevision))changed=shadow_choices_complete(&aiChoices,false,utf8(lexical).c_str());
+                if(aiModel.done(aiRequestRevision))changed=shadow_choices_complete(&aiChoices,true,utf8(model).c_str()) || changed;
+                if(changed){++revision;aiRevision=revision;showAIChoices();}
             }
 #endif
             settingsChanged=false; return S_OK;
         }
 #ifdef SHADOWINPUT_IME
-        if ((command.kind==TypingCommand::Choose && command.engineIndex==SIZE_MAX && command.revision==revision) ||
-            (command.kind==TypingCommand::Key && command.key.symbol==0xff09 && !command.key.modifiers)) {
-            if(!aiText.empty()) return commitAI(cookie,handled);
+        if(command.kind==TypingCommand::Choose && command.engineIndex>=SIZE_MAX-1 && command.revision==revision)
+            return commitAI(cookie,handled,SIZE_MAX-command.engineIndex);
+        if(command.kind==TypingCommand::Key && !command.key.modifiers && hasAI()) {
+            if(command.key.symbol==0xff09)return commitAI(cookie,handled,aiChoices.selected);
+            if(command.key.symbol==0xff52 || command.key.symbol==0xff54) {
+                shadow_choices_move(&aiChoices,command.key.symbol==0xff54?1:-1);
+                aiModel.update({},aiRequestRevision);
+                ++revision;aiRevision=revision;showAIChoices();handled=true;return S_OK;
+            }
         }
         clearAI();
         if(!composition && !sameContinuation(cookie))clearContinuation();

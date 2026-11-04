@@ -34,7 +34,7 @@ func TestNativeInputPhrases(t *testing.T) {
 	}
 	a := &app{s: state.NewState(), local: local, directory: t.TempDir(), dispatch: func(fn func()) { fn() }}
 	a.s.Profile, a.s.ProfileReady, a.s.AICandidates = domain.DefaultWritingProfile(), true, true
-	if got, err := a.candidate(context.Background(), "部门"); err != nil || got != "负责人" || local.Ready() {
+	if got, err := a.lookupPhrase(context.Background(), "部门"); err != nil || got != "负责人" || local.Ready() {
 		t.Fatalf("dictionary requires model: %q %v", got, err)
 	}
 	start, cancel := context.WithTimeout(context.Background(), time.Minute)
@@ -46,7 +46,7 @@ func TestNativeInputPhrases(t *testing.T) {
 		t.Fatal("explicit model start did not become ready")
 	}
 	a.applyLocalStatus()
-	for _, source := range []string{"明天我们", "麻烦帮我"} {
+	for _, source := range []string{"部门", "公司", "会议", "项目", "办公室", "我们部门", "明天我们", "麻烦帮我"} {
 		ctx, stop := context.WithTimeout(context.Background(), 2*time.Second)
 		began := time.Now()
 		got, err := a.candidate(ctx, source)
