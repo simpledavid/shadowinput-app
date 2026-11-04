@@ -71,3 +71,27 @@ test('the webpage error card preserves safe translation diagnostics and stops fu
     assert.equal(dom.window.document.querySelector('[data-shadowinput="translation"]'),null);
   } finally {dom.window.close();}
 });
+
+test('completed item stream reaches bilingual reading and restores the original paragraph',async()=>{
+  const {translate}=await import('../build/features/translate/index.js');
+  const dom=environment(),document=dom.window.document,paragraph=document.querySelector('p');
+  const events=[
+    {type:'response.output_item.done',output_index:0,item:{type:'message',role:'assistant',status:'completed',content:[{type:'output_text',text:'你好，世界。'}]}},
+    {type:'response.completed',response:{status:'completed',output:[]}},
+  ];
+  const reader=new Reader(document,async(type,fields)=>{
+    if(type==='contentConfig')return config;
+    if(type==='translateBlock')return translate('synthetic',fields.text,config.target,config.model,new AbortController().signal,
+      async()=>new Response(events.map(event=>'data: '+JSON.stringify(event)+'\n\n').join('')));
+  });
+  try {
+    await reader.action('toggle');
+    const translated=paragraph.querySelector('[data-shadowinput="translation"]');
+    assert.ok(translated,'completed stream should insert a bilingual paragraph instead of an error card');
+    assert.match(translated.shadowRoot.textContent,/你好，世界。/);
+    assert.match(paragraph.textContent,/Hello world\./);
+    await reader.action('toggle');
+    assert.equal(document.querySelector('p'),paragraph);
+    assert.equal(paragraph.textContent,'Hello world.');
+  } finally {dom.window.close();}
+});

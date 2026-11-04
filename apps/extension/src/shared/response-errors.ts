@@ -16,7 +16,7 @@ const providerFailures = [
   ['model_not_available','model_unavailable'],
 ] as const satisfies ReadonlyArray<readonly [string,ErrorCode]>;
 const streamReasons = ['stream_interrupted','response_incomplete','max_output_tokens','content_filter',
-  'refusal','empty_output','output_too_large','stream_too_large','provider_failed'] as const;
+  'refusal','empty_output','no_final_text','missing_completed_text','output_too_large','stream_too_large','provider_failed'] as const;
 export type ResponseReason = typeof providerFailures[number][0] | typeof streamReasons[number];
 
 export class ResponseError extends Error {

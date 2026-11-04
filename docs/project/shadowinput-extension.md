@@ -75,3 +75,25 @@ credentials; it does not revoke the provider-side grant.
   No CRAP, duplication or mutation score is claimed.
 
 Publish this as a preview with those limits, not a Chrome Web Store release.
+
+## Empty-output regression
+
+The user reported `stream · empty_output` with both GPT-6.1 Sol and GPT-6.1 Terra,
+including a workbench request containing only `hello`. This narrows the failure
+beyond page extraction, but screenshots do not establish the provider event shape.
+A synthetic reproduction passed a completed assistant item followed by
+`response.completed` with an empty output array: the previous parser discarded
+the item and reproduced the empty-output failure. The regression failed before
+the change and passed afterward, including bilingual insertion/restoration through
+the production reader and translation functions.
+
+The parser now retains completed output items by index and waits for the response
+completion gate. A nonempty final output remains authoritative; incomplete items,
+refusals, commentary and failed/interrupted streams remain unusable. Diagnostics
+separate absent text, uncompleted deltas and items without a final answer without
+retaining source text, translations, raw errors or response bodies. See the
+[Responses item event schema](https://developers.openai.com/api/reference/resources/responses/streaming-events#response.output_item.done).
+This is protocol-fixture evidence, not confirmation of the remote user's exact
+response or successful live GPT inference. A refreshed extension must still pass
+`hello` translation and a normal webpage on that account. Desktop installers and
+website deployment remain paused.

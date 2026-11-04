@@ -30,9 +30,14 @@ Connection and in-page translation errors show a fixed step, failure category,
 optional HTTP status and allowlisted provider/stream reason. Plan usage limits,
 temporary unavailability, model restrictions, refusals, output limits and missing
 completion events remain distinct. No retry or reauthorization loop is started.
-Only `response.completed` can authorize a result; its final message text is used
-when supplied, rather than requiring delta events. Empty/refused/incomplete final
-messages are never replaced with partial streamed text.
+Only `response.completed` can authorize a result. Nonempty final output is
+authoritative. When that output array is empty or omitted, completed assistant
+items from `response.output_item.done` supply the text in output-index order,
+excluding commentary and duplicate events. An unfinished item, explicit empty
+final message, refusal or incomplete response cannot become a translation.
+Raw deltas never replace an empty final array. Safe reasons distinguish no text
+(`empty_output`), deltas without completed text (`missing_completed_text`) and
+items without a final answer (`no_final_text`); they contain no response content.
 These diagnostics exclude raw exceptions, URLs, response bodies, credentials and
 translated content. The latest callback error is held only in session storage and
 clears when sign-in starts/completes or the user signs out.
