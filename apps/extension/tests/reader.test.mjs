@@ -189,6 +189,43 @@ test('batches stay within limits and preserve long single paragraphs',async()=>{
   } finally {await reader.action('restore');dom.window.close();}
 });
 
+test('visible content beyond the DOM cap is translated first without exceeding the paragraph limit',async()=>{
+  const dom=environment(),document=dom.window.document,requests=[];
+  document.querySelector('main').innerHTML=Array.from({length:121},(_,i)=>'<p>Sentence '+i+'.</p>').join('');
+  const nodes=[...document.querySelectorAll('p')];
+  nodes.forEach((node,index)=>node.getBoundingClientRect=()=>({top:index===120?100:-2000,bottom:index===120?140:-1960}));
+  const reader=new Reader(document,async(type,fields)=>{
+    if(type==='contentConfig')return config;
+    if(type==='translateBlock'){requests.push(fields.text);return 'Translated '+fields.text;}
+    if(type==='translateBatch'){requests.push(...fields.texts);return fields.texts.map(text=>'Translated '+text);}
+  });
+  try {
+    await reader.action('translate');
+    assert.equal(requests[0],'Sentence 120.','the currently visible result must not be excluded by a DOM-order cap');
+    assert.ok(nodes[120].querySelector('[data-shadowinput="translation"]'));
+    assert.equal(document.querySelectorAll('[data-shadowinput="translation"]').length,120);
+    assert.equal(requests.length,120);
+    assert.equal(nodes[119].querySelector('[data-shadowinput="translation"]'),null);
+  } finally {await reader.action('restore');dom.window.close();}
+});
+
+test('visibility ranking preserves duplicate reuse and caps annotated nodes rather than unique texts',async()=>{
+  const dom=environment(),document=dom.window.document,requests=[];
+  document.querySelector('main').innerHTML=Array.from({length:121},()=>'<p>Repeated sentence.</p>').join('');
+  const nodes=[...document.querySelectorAll('p')];
+  nodes.forEach((node,index)=>node.getBoundingClientRect=()=>({top:index===120?100:2000,bottom:index===120?140:2040}));
+  const reader=new Reader(document,async(type,fields)=>{
+    if(type==='contentConfig')return config;
+    if(type==='translateBlock'){requests.push(fields.text);return 'Repeated translation.';}
+  });
+  try {
+    await reader.action('translate');
+    assert.ok(nodes[120].querySelector('[data-shadowinput="translation"]'));
+    assert.equal(document.querySelectorAll('[data-shadowinput="translation"]').length,120);
+    assert.deepEqual(requests,['Repeated sentence.']);
+  } finally {await reader.action('restore');dom.window.close();}
+});
+
 test('batch completions reject changed paragraphs and cancelled work never returns to the page',async()=>{
   const dom=environment(),document=dom.window.document,replies=[];let active=0,peak=0;
   document.querySelector('main').innerHTML=Array.from({length:10},(_,i)=>'<p>Sentence '+i+'.</p>').join('');

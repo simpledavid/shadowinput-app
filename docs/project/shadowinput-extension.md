@@ -172,7 +172,7 @@ The reader now groups identical text, prioritizes the viewport and reserves a
 small first request. Remaining paragraphs use bounded batches; the
 [extension README](../../apps/extension/README.md) owns the limits. The worker
 uses the saved model/target and keeps the existing document/global concurrency
-caps. No automatic model switch, retry loop, new API options or remote batch-job
+caps. No automatic model switch, retry loop or remote batch-job
 service is introduced. Batch text travels through the existing completed-response
 stream parser, then exact ID/count/nonempty-text validation restores source order.
 A malformed batch is rejected as a whole. No source text or raw malformed output
@@ -183,6 +183,16 @@ bounds, reordered IDs, malformed/incomplete results, document cancellation and
 changed paragraphs. They establish fewer calls, not a measured live Sol speedup.
 Real account timing and the model's batch-format compliance remain acceptance
 checks. A first response can still be delayed by provider/network latency.
+
+A later regression reproduced a scrolled long page whose visible paragraph fell
+beyond the initial DOM-order cap. Visibility is now ranked before limiting nodes;
+only selected nodes are marked as scheduled. Duplicate text remains one request,
+and the cap still counts annotated nodes, not unique text. Provider requests use
+the model-specific reasoning policy documented in the extension README to reduce
+unnecessary reasoning work. Tests assert both single and batched request bodies
+while preserving unknown-model defaults and completed-response validation. These
+fixes have synthetic regression evidence, not a measured provider speedup or a
+controlled comparison with another extension.
 
 ## Empty-output regression
 

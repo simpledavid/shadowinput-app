@@ -40,13 +40,19 @@ reloading models or contacting the provider. Model loading and retry controls
 remain visible; unavailable models do not leave a blank list.
 
 Reading is capped at 120 paragraphs per run with two concurrent requests per
-document. Visible paragraphs are prioritized, and identical text is translated
+document. Visible paragraphs are prioritized before applying that cap, and identical text is translated
 once per scan. The first paragraph gets its own request to keep the first result
 small. Later short paragraphs share a request, up to four paragraphs and 6,000
 source characters. Longer paragraphs (up to 8,000 characters) remain individual
 requests. A batch must complete with every requested paragraph ID exactly once;
 missing, duplicate, invalid or empty entries cannot be applied. Each completed
 batch appears without waiting for the rest of the page.
+For the exact `gpt-6.1-sol` model, single-text and batch requests explicitly use
+`reasoning.effort: low`, supported by the
+[model documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol),
+instead of its medium default. Other models retain their provider defaults;
+there is no automatic model switch or paid priority tier. Live translation latency
+and quality with this setting still need verification.
 Original DOM nodes remain intact. Output is inert text in isolated shadow roots.
 Changed paragraphs/drafts reject stale results. Hidden content, code, password
 fields and rich editors are excluded. Restore cancels that document's work.

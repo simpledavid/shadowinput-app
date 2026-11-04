@@ -40,6 +40,7 @@ test('translation submits only the requested text using the documented plan requ
     assert.deepEqual(body.input,[{role:'user',content:'Hello'}]);
     assert.equal(body.store,false);assert.equal(body.stream,true);
     assert.equal(body.temperature,undefined);assert.equal(body.max_output_tokens,undefined);
+    assert.equal(body.reasoning,undefined,'unknown models retain their supported defaults');
     return stream([{type:'response.output_text.delta',delta:'你好'},{type:'response.completed',response:{status:'completed'}}]);
   };
   const signal=new AbortController().signal;
@@ -55,6 +56,26 @@ test('model picker uses only the authorized visible catalog',async()=>{
   assert.deepEqual(list,[{id:'allowed',name:'Allowed'}]);
   await assert.rejects(models('synthetic',async()=>Response.json({models:[]})),/plan_permission/);
   await assert.rejects(models('synthetic',async()=>new Response('',{status:401})),/sign_in_required/);
+});
+
+test('Sol translation uses supported low reasoning for single text and paragraph batches',async()=>{
+  const {translateBatch}=await import('../build/features/translate/index.js');
+  const requests=[];
+  const fetcher=async(_url,options)=>{
+    const body=JSON.parse(options.body);requests.push(body);
+    const text=requests.length===1?'你好':JSON.stringify({translations:[{id:0,text:'一。'},{id:1,text:'二。'}]});
+    return stream([{type:'response.completed',response:{status:'completed',output:[item(text)]}}]);
+  };
+  const signal=new AbortController().signal;
+  assert.equal(await translate('synthetic','Hello','zh-CN','gpt-6.1-sol',signal,fetcher),'你好');
+  assert.deepEqual(await translateBatch('synthetic',['One.','Two.'],'zh-CN','gpt-6.1-sol',signal,fetcher),['一。','二。']);
+  assert.equal(requests.length,2);
+  for(const request of requests) {
+    assert.equal(request.model,'gpt-6.1-sol','latency tuning must not change the selected model');
+    assert.deepEqual(request.reasoning,{effort:'low'});
+    assert.equal(request.service_tier,undefined,'no paid priority mode is enabled');
+    assert.equal(request.store,false);assert.equal(request.stream,true);
+  }
 });
 
 test('a completed response supplies authoritative text even without text deltas',async()=>{
@@ -199,6 +220,7 @@ test('a paragraph batch sends one bounded request and maps returned ids to the o
     assert.equal(body.store,false);assert.equal(body.stream,true);
     assert.match(body.instructions,/Simplified Chinese/);
     assert.equal(body.model,'chosen-model');
+    assert.equal(body.reasoning,undefined);
     return stream([{type:'response.completed',response:{status:'completed',output:[item(JSON.stringify({translations:[{id:1,text:'二。'},{id:0,text:'一。'}]}))]}}]);
   };
   assert.deepEqual(await translateBatch('synthetic',['One.','Two.'],'zh-CN','chosen-model',new AbortController().signal,fetcher),['一。','二。']);
