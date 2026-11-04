@@ -38,12 +38,15 @@ export class Reader {
   async initialize(automatic=true):Promise<void> {
     const config=object(await this.send('contentConfig'));
     this.config=settings(config);
+    this.showLauncher();
+    if(automatic && config.automatic===true)await this.action('toggle');
+  }
+  showLauncher():void {
     if(this.iconURL && !this.floating)this.floating=launcher(this.document,this.iconURL,{
       quick:()=>void this.send('openQuick').catch(error=>this.showError(error)),
       page:()=>void this.action('toggle').catch(error=>this.showError(error)),
     });
-    this.updateLauncher();
-    if(automatic && config.automatic===true)await this.action('toggle');
+    this.floating?.show();this.updateLauncher();
   }
   private updateLauncher():void {this.floating?.update(this.config.locale,this.state().translated);}
   private get text(){return readingCopy[this.config.locale];}
@@ -78,6 +81,7 @@ export class Reader {
   }
   private async result(text:string):Promise<string> {return requiredString((await this.results([text]))[0]);}
   async action(action:string):Promise<void> {
+    this.showLauncher();
     if(action==='restore' || (action==='toggle' && this.state().translated)){this.stop();return;}
     const started=this.generation;
     try {

@@ -16,9 +16,15 @@ a failed sign-out remains recoverable. Selection translation stays in the right-
 menu. Alt+Shift+T toggles page translation; Alt+Shift+I previews the focused input.
 Chrome's shortcut settings can change these bindings.
 
-Opening the popup or using a page action adds a two-button launcher. The upper
+Opening the popup or using a page action adds a floating toolbar. The upper
 window icon opens Quick translation in a separate compact browser window; the
-lower SI button translates/restores the current page. Quick translation shares
+lower SI button translates/restores the current page. Drag the grip or an action
+button to reposition the toolbar; arrow keys on the focused grip also move it.
+A drag does not trigger translation. Position stays within the viewport, including
+when it is resized. The bottom close button hides the toolbar only, preserving
+page translations and site preferences. Reopen it from the extension popup or a
+reading action; its position is retained for the current document. A new page
+starts at the default position. Quick translation shares
 the existing account/model and translation behavior and starts with an empty draft.
 Quick translation and the full workbench translate typed or pasted text after
 700 ms without changes. IME composition waits until text is committed. Editing

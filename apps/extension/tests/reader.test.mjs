@@ -226,10 +226,9 @@ test('upper quick action opens a window without reading or translating page cont
   try {
     await reader.initialize(false);
     const root=roots.find(root=>root.host.dataset.shadowinput==='launcher');
-    const buttons=[...root.querySelectorAll('button')];
-    assert.equal(buttons.length,2);
-    assert.equal(buttons[0].getAttribute('aria-label'),'快捷翻译（新窗口）');
-    buttons[0].click();await tick();
+    const quick=root.querySelector('[data-action="quick"]');assert.ok(quick);
+    assert.equal(quick.getAttribute('aria-label'),'快捷翻译（新窗口）');
+    quick.click();await tick();
     assert.deepEqual(calls.slice(1),[{type:'openQuick',fields:undefined}]);
     assert.equal(document.querySelector('[data-shadowinput="translation"]'),null);
     assert.equal(reader.state().translated,false);
