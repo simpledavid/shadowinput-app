@@ -20,10 +20,11 @@ export async function mountToolbar():Promise<void> {
   const t=copy[config.locale],reading=readingCopy[config.locale],text=toolbarCopy[config.locale];
   const target=element('target',HTMLSelectElement),model=element('model',HTMLSelectElement);
   const pinned=element('pinned',HTMLInputElement),automatic=element('automatic',HTMLInputElement),hover=element('hover',HTMLInputElement);
-  const status=element('status',HTMLParagraphElement),accountLink=element('account',HTMLButtonElement);
+  const status=element('status',HTMLParagraphElement),accountAction=element('account',HTMLButtonElement);
+  const accountEmail=element('account-email',HTMLParagraphElement),accountPlan=element('account-plan',HTMLParagraphElement);
   const refresh=element('refresh',HTMLButtonElement),input=element('input',HTMLButtonElement);
   let site:Site|undefined,connected=false,checking=true,models:ModelState='loading',busy=false;
-  let initializingFailed=false,signingIn=false;
+  let initializingFailed=false,signingIn=false,email='';
   let notice:{text:string;error:boolean}|undefined;
   document.documentElement.lang=config.locale==='zh'?'zh-CN':'en';
   document.querySelectorAll<HTMLElement>('[data-copy]').forEach(node=>{
@@ -31,7 +32,7 @@ export async function mountToolbar():Promise<void> {
   });
   Array.from(target.options).forEach((option,index)=>{option.textContent=t.languages[index] ?? '';});
   target.value=config.target;
-  accountLink.title=text.account;
+  element('account-heading',HTMLElement).textContent=t.account;
   automatic.title=reading.autoHint;
 
   function render():void {
@@ -48,8 +49,11 @@ export async function mountToolbar():Promise<void> {
     const group=document.querySelector('.site-setting');
     if(group instanceof HTMLElement)group.hidden=!site;
     element('automatic-hint',HTMLElement).hidden=!site?.automatic;
-    accountLink.disabled=busy || checking;
-    accountLink.textContent=checking?text.checking:initializingFailed?text.retry:signingIn?text.progress:connected?text.connected:text.signedOut;
+    accountAction.disabled=busy || checking;
+    accountAction.textContent=checking?text.checking:initializingFailed?text.retry:signingIn?text.progress:connected?t.disconnect:text.signedOut;
+    accountEmail.textContent=connected?email:'';accountEmail.title=accountEmail.textContent;
+    accountEmail.hidden=!connected || !email;
+    accountPlan.hidden=!connected;
     status.textContent=notice?.text ?? (!checking && !site?reading.noPage:'');
     status.classList.toggle('error',notice?.error===true);
   }
@@ -88,9 +92,10 @@ export async function mountToolbar():Promise<void> {
     render();
   }
   element('text',HTMLButtonElement).addEventListener('click',()=>void run(()=>openWorkbench('translation-form')));
-  accountLink.addEventListener('click',()=>void run(async()=>{
+  accountAction.addEventListener('click',()=>void run(async()=>{
     if(initializingFailed)await initialize();
-    else if(signingIn || connected)await openWorkbench('account');
+    else if(signingIn)await openWorkbench('account');
+    else if(connected){await request('logout');connected=false;email='';clearModels();}
     else {await request('connect');window.close();}
   }));
   target.addEventListener('change',()=>void run(save));
@@ -118,6 +123,9 @@ export async function mountToolbar():Promise<void> {
     finally {hover.checked=site.hover;}
   }));
   input.addEventListener('click',()=>void run(async()=>{await request('pageAction',{action:'input'});window.close();}));
+  function clearModels():void {
+    models='failed';model.replaceChildren(new Option(text.signedOut,''));
+  }
   async function initialize():Promise<void> {
     checking=true;initializingFailed=false;signingIn=false;site=undefined;notice=undefined;render();
     const [account,current]=await Promise.allSettled([request('status'),request('currentSite')]);
@@ -131,8 +139,9 @@ export async function mountToolbar():Promise<void> {
     if(account.status==='rejected'){initializingFailed=true;showError(account.reason);render();return;}
     const identity=object(account.value);
     connected=identity.connected===true;signingIn=identity.pending===true || identity.notice==='verifying';
+    email=typeof identity.email==='string'?identity.email:'';
     if(connected)await loadModels();
-    else {models='failed';model.replaceChildren(new Option(text.signedOut,''));}
+    else clearModels();
     render();
   }
   await initialize();
