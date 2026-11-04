@@ -9,10 +9,11 @@ const manual=Reflect.get(globalThis,manualInjectionMarker)===true;
 Reflect.deleteProperty(globalThis,manualInjectionMarker);
 if(!Object.prototype.hasOwnProperty.call(globalThis,marker)) {
   Object.defineProperty(globalThis,marker,{value:true});
-  const reader=new Reader(document,request);
+  const reader=new Reader(document,request,chrome.runtime.getURL('icons/icon-32.png'));
   chrome.runtime.onMessage.addListener((raw:unknown,sender,respond)=>{
     if(sender.id!==chrome.runtime.id)return false;
     const message=object(raw);
+    if(message.type==='readingState'){respond(reader.state());return false;}
     if(message.type!=='reading' || typeof message.action!=='string')return false;
     respond({ok:true});
     void reader.action(message.action).catch(error=>reader.showError(error));

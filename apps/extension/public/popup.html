@@ -1,12 +1,29 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>shadowinput</title><link rel="stylesheet" href="theme.css"><link rel="stylesheet" href="popup.css"></head><body>
-<main><header><div class="brand"><img src="icons/icon-256.png" width="28" height="28" alt="">shadowinput</div><span class="eyebrow" data-copy="preview"></span></header>
-<p class="tagline" data-copy="title"></p>
-<button id="connect" class="primary" data-copy="connect"></button>
-<section hidden>
-  <div class="selectors"><label><span data-copy="target"></span><select id="target"><option value="zh-CN"></option><option value="en"></option><option value="ja"></option></select></label><label><span data-copy="model"></span><select id="model"></select></label></div>
-  <div class="reading-actions"><button class="primary" data-action="toggle" data-copy="page"></button><button data-action="selection" data-copy="selection"></button><button data-action="input" data-copy="input"></button><button data-action="hover" data-copy="hover"></button></div>
-  <div class="site-setting"><label><input type="checkbox" id="automatic"><span data-copy="auto"></span></label><p id="host"></p><small data-copy="autoHint"></small></div>
-</section>
-<p role="status" class="error"></p>
-<button id="settings" class="settings-button" data-copy="settings"></button>
-</main><script type="module" src="app/popup.js"></script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>shadowinput</title><link rel="stylesheet" href="theme.css"><link rel="stylesheet" href="popup.css"></head>
+<body><main>
+  <header><div class="brand"><img src="icons/icon-256.png" width="26" height="26" alt="">shadowinput</div><button id="settings" class="quiet" aria-controls="settings-panel" aria-expanded="false" data-copy="settings"></button></header>
+  <section id="home">
+    <label class="target-row"><span data-copy="target"></span><select id="target"><option value="zh-CN"></option><option value="en"></option><option value="ja"></option></select></label>
+    <button id="page-action" class="primary" data-action="page" disabled></button>
+    <div class="site-setting" hidden>
+      <label class="switch-row"><span data-copy="auto"></span><input type="checkbox" role="switch" id="automatic" aria-describedby="host automatic-hint"></label>
+      <p id="host"></p><small id="automatic-hint" hidden data-copy="autoHint"></small>
+    </div>
+  </section>
+  <section id="settings-panel" hidden>
+    <label class="model-label" for="model" data-copy="model"></label>
+    <div class="model-row"><select id="model" disabled></select><button id="refresh" class="quiet" data-copy="refresh" disabled></button></div>
+    <div id="page-tools" hidden>
+      <label class="switch-row pin-row"><span data-copy="pin"></span><input type="checkbox" role="switch" id="pinned" aria-describedby="pin-hint"></label>
+      <p id="pin-hint" class="hint" data-copy="pinHint"></p>
+      <label class="switch-row"><span data-copy="hover"></span><input type="checkbox" role="switch" id="hover"></label>
+      <button id="input" data-action="input" data-copy="input"></button>
+      <p class="hint" data-copy="inputHint"></p>
+    </div>
+    <p class="hint selection-hint" data-copy="selectionHint"></p>
+  </section>
+  <p id="status" role="status" aria-live="polite"></p>
+  <footer><button id="text" class="quiet" data-copy="text"></button><button id="account" class="quiet"></button></footer>
+</main><script type="module" src="app/popup.js"></script></body>
+</html>

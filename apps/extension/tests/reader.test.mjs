@@ -95,3 +95,43 @@ test('completed item stream reaches bilingual reading and restores the original 
     assert.equal(paragraph.textContent,'Hello world.');
   } finally {dom.window.close();}
 });
+
+test('page state belongs to the reader and restoring never needs a model or new config request',async()=>{
+  const dom=environment();let offline=false,configs=0;
+  const reader=new Reader(dom.window.document,async type=>{
+    if(type==='contentConfig'){configs++;if(offline)throw new Error('network_error');return config;}
+    if(type==='translateBlock')return '你好，世界。';
+  });
+  try {
+    await reader.action('toggle');
+    assert.equal(reader.state().translated,true);
+    const before=configs;offline=true;
+    await reader.action('restore');
+    assert.equal(configs,before,'restore should work without account or model requests');
+    assert.equal(reader.state().translated,false);
+    assert.equal(dom.window.document.querySelector('[data-shadowinput="translation"]'),null);
+  } finally {dom.window.close();}
+});
+
+test('the single floating button translates on click and restores without another request',async()=>{
+  const dom=environment(),document=dom.window.document,roots=[];let translations=0;
+  const attach=dom.window.Element.prototype.attachShadow;
+  dom.window.Element.prototype.attachShadow=function(options){const root=attach.call(this,options);roots.push(root);return root;};
+  const reader=new Reader(document,async type=>{
+    if(type==='contentConfig')return config;
+    if(type==='translateBlock'){translations++;return '你好，世界。';}
+  },'https://fixture.invalid/icon.png');
+  try {
+    await reader.initialize(false);await reader.initialize(false);
+    assert.equal(document.querySelectorAll('[data-shadowinput="launcher"]').length,1);
+    const root=roots.find(root=>root.host.dataset.shadowinput==='launcher');
+    const button=root.querySelector('button');
+    assert.equal(translations,0,'showing the launcher must not send page text');
+    assert.equal(button.getAttribute('aria-label'),'翻译此页');
+    button.click();await tick();await tick();
+    assert.equal(translations,1);assert.equal(button.getAttribute('aria-label'),'恢复原文');
+    button.click();await tick();
+    assert.equal(translations,1);assert.equal(reader.state().translated,false);
+    assert.equal(button.getAttribute('aria-label'),'翻译此页');
+  } finally {dom.window.close();}
+});

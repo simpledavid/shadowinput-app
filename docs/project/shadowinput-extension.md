@@ -12,6 +12,8 @@ Source code, interface and branding are shadowinput's own implementation.
 - Bilingual paragraphs, restore, selection, optional Shift-hover and preview/apply
   for unchanged plain inputs.
 - Optional automatic translation per explicitly authorized website.
+- Compact stateful popup and one SI page button; independently opt in to keep
+  that button on a website without automatic translation.
 - Chinese/English UI; Chinese/English/Japanese targets; cancellation and recovery.
 
 This is not production feature parity. PDF layout translation, EPUB export,
@@ -75,6 +77,32 @@ credentials; it does not revoke the provider-side grant.
   No CRAP, duplication or mutation score is claimed.
 
 Publish this as a preview with those limits, not a Chrome Web Store release.
+
+## Compact popup and page button
+
+The popup keeps the target language, one translate/restore action and the current
+site's automation switch on its home view. Models, refresh, pinned button,
+Shift-hover and input preview are in Settings. Text and account links open the
+corresponding workbench sections; these fragment URLs retain exact extension-page
+sender validation. The reader owns page/hover state and reports only two booleans
+to the popup. Restoring originals bypasses configuration/model reads and cancels
+the document's work.
+
+Pinning and automatic translation share one origin-specific content registration
+but keep separate preferences. Saving either is serialized by the worker; failed
+preference writes roll back the registration. Manual popup inspection initializes
+the reader without triggering a saved automatic-translation rule. Persistent
+injection is limited to origins explicitly granted by the user.
+
+Failing-then-passing DOM and worker tests cover stateful actions, recovery,
+permission denial, independent site options, failed-save rollback and the trusted
+fragment routes. Browser-rendered synthetic fixtures cover Chinese/English and
+light/dark popup states. A real browser fixture displayed the rounded button;
+keyboard activation inserted bilingual fixture text and restored originals with
+no extra translation request. Automated coordinate clicking cannot access the
+closed shadow root in that browser tool; DOM click tests cover the same action.
+These checks do not prove Chrome installation, persistent permission prompts or
+live GPT inference. The website and installed extension have not been replaced.
 
 ## Empty-output regression
 

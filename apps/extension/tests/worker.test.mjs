@@ -27,7 +27,7 @@ const tick=()=>new Promise(resolve=>setImmediate(resolve));
 
 test('a page or another extension cannot read credentials or invoke account operations',()=>{
   for(const sender of [external,content]) {
-    for(const type of ['status','connect','logout','models','settings','translate','setAutomatic']) {
+    for(const type of ['status','connect','logout','models','settings','translate','setAutomatic','setPinned','currentSite','pageAction']) {
       let called=false;
       assert.equal(events.message({type},sender,()=>{called=true;}),false);
       assert.equal(called,false);
@@ -115,5 +115,18 @@ test('closing the text workbench cancels its in-flight translation',async()=>{
     release(new Response(''));
     await response;
     globalThis.fetch=original;
+  }
+});
+
+test('account and text section links retain trusted workbench access',async()=>{
+  for(const hash of ['#account','#translation-form']) {
+    const sender={id:'test-extension',url:'chrome-extension://test-extension/panel.html'+hash};
+    const reply=await new Promise(resolve=>events.message({type:'status'},sender,resolve));
+    assert.equal(reply.ok,true);
+  }
+  for(const url of ['https://example.invalid/#chrome-extension://test-extension/panel.html','chrome-extension://test-extension/panel.html/extra#account']) {
+    let called=false;
+    assert.equal(events.message({type:'status'},{...content,url},()=>{called=true;}),false);
+    assert.equal(called,false);
   }
 });
