@@ -19,9 +19,17 @@ Chrome's shortcut settings can change these bindings.
 Opening the popup or using a page action adds a two-button launcher. The upper
 window icon opens Quick translation in a separate compact browser window; the
 lower SI button translates/restores the current page. Quick translation shares
-the existing account/model and translation behavior, starts with an empty draft
-and sends text only after submitting. It does not read the clipboard or import
-page text. Reopening focuses a live quick window without changing its draft. Restore remains available without
+the existing account/model and translation behavior and starts with an empty draft.
+Quick translation and the full workbench translate typed or pasted text after
+700 ms without changes. IME composition waits until text is committed. Editing
+text or changing target/model clears the result and cancels the old request;
+only the latest draft can finish. A replacement waits for both the previous
+request and its cancellation to settle. Clear, cancel and close remove queued
+work. Failed translations require a deliberate retry or edit, with no retry loop.
+The Translate/Copy buttons are removed; output remains selectable for normal
+keyboard copying and never writes the clipboard automatically. Neither window
+reads the clipboard or imports page text. Reopening focuses a live quick window
+without changing its draft. Restore remains available without
 reloading models or contacting the provider. Model loading and retry controls
 remain visible; unavailable models do not leave a blank list.
 

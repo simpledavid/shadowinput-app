@@ -9,7 +9,7 @@
   <form id="translation-form">
     <div class="toolbar"><label><span data-copy="target"></span><select id="target"><option value="zh-CN"></option><option value="en"></option><option value="ja"></option></select></label><label class="model"><span data-copy="model"></span><select id="model"></select></label><button id="refresh" type="button" data-copy="refresh"></button></div>
     <div class="editors"><label><span data-copy="source"></span><textarea id="source" maxlength="8000" spellcheck="false"></textarea></label><label><span data-copy="result"></span><textarea id="result" readonly></textarea></label></div>
-    <div class="actions"><button id="translate" class="primary" type="submit" disabled data-copy="translate"></button><button id="cancel" type="button" hidden data-copy="cancel"></button><button id="copy" class="copy" type="button" disabled data-copy="copy"></button></div>
+    <div id="translation-activity" class="translation-activity" hidden><p id="translation-status" role="status" aria-live="polite"></p><button id="cancel" type="button" hidden data-copy="cancel"></button><button id="retry" type="button" hidden data-copy="retry"></button></div>
   </form>
   <p id="error" class="error" role="alert"></p>
   <p class="privacy" data-copy="privacy"></p>

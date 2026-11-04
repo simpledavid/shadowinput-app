@@ -8,7 +8,7 @@ Source code, interface and branding are shadowinput's own implementation.
 ## Implemented preview
 
 - Authorization, verified identity/plan grant, rotating refresh, local logout,
-  authorized model discovery and explicit text translation.
+  authorized model discovery and automatic translation of typed/pasted drafts.
 - Bilingual paragraphs, restore, selection, optional Shift-hover and preview/apply
   for unchanged plain inputs.
 - Optional automatic translation per explicitly authorized website.
@@ -22,8 +22,9 @@ browsers and site-specific video adapters are not implemented in this ZIP.
 They remain subsequent slices after real account/browser acceptance.
 
 The [extension README](../../apps/extension/README.md) owns installation,
-permissions and storage details. Text is sent after an explicit action, or
-automatically for an enabled site. No shadowinput proxy, analytics, chat-history
+permissions and storage details. In the quick/full text window, typed or pasted
+text is sent automatically after a pause. Webpage text is sent after a translation
+action or automatically for an enabled site. No shadowinput proxy, analytics, chat-history
 access or persistent original/translation history is used. Local logout clears
 credentials; it does not revoke the provider-side grant.
 
@@ -115,10 +116,20 @@ live GPT inference. The website and installed extension have not been replaced.
 
 The upper launcher button opens a compact `quick.html` window. The lower SI button
 continues to translate/restore only the current page. The quick page reuses the
-workbench feature for account status, model/target preferences, explicit text
-translation, cancellation and copying; it has no automatic selection/clipboard
+workbench feature for account status, model/target preferences and automatic text
+translation with cancellation/retry; it has no automatic selection/clipboard
 capture and does not persist drafts or results. Closing its tab follows the same
 worker-owned job cancellation as the full workbench.
+
+Both text windows remove the Translate/Copy buttons and use one shared scheduler.
+The current nonempty draft starts after a 700 ms pause, only with a connected
+account and usable model. Composition waits for committed text. A changed draft,
+target or model invalidates the old result immediately. One active request and
+one latest replacement are owned by the scheduler; the old request and its
+cancellation must settle before a replacement starts. Clearing, cancelling or
+closing drops queued work. Errors show a small explicit retry action, never an
+automatic retry loop. Output stays selectable for keyboard copying; there is no
+automatic clipboard write. Visible privacy copy explains automatic transmission.
 
 The worker only opens the fixed internal URL, ignores caller-supplied text/URLs,
 and coalesces concurrent opens. It uses
@@ -130,8 +141,8 @@ quick-page URLs join the trusted extension-page allowlist; content contexts gain
 only the fixed opening action and still cannot invoke account operations.
 
 DOM and worker fixtures cover upper/lower routing, no translation on opening,
-window creation/reuse, ignored untrusted fields, sender boundaries, explicit
-translation/copy and cancellation. The shared workbench also now gives model
+window creation/reuse, ignored untrusted fields, sender boundaries, debounced
+translation, IME composition, stale-result rejection and cancellation. The shared workbench also now gives model
 loading/failure placeholders and disables unusable selections until refresh
 succeeds. Browser-rendered Chinese/English light/dark fixtures fit the compact
 window content width, and keyboard activation verified the two launcher routes
