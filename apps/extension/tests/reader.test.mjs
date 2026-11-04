@@ -113,7 +113,7 @@ test('page state belongs to the reader and restoring never needs a model or new 
   } finally {dom.window.close();}
 });
 
-test('the single floating button translates on click and restores without another request',async()=>{
+test('the lower floating button translates on click and restores without another request',async()=>{
   const dom=environment(),document=dom.window.document,roots=[];let translations=0;
   const attach=dom.window.Element.prototype.attachShadow;
   dom.window.Element.prototype.attachShadow=function(options){const root=attach.call(this,options);roots.push(root);return root;};
@@ -125,7 +125,8 @@ test('the single floating button translates on click and restores without anothe
     await reader.initialize(false);await reader.initialize(false);
     assert.equal(document.querySelectorAll('[data-shadowinput="launcher"]').length,1);
     const root=roots.find(root=>root.host.dataset.shadowinput==='launcher');
-    const button=root.querySelector('button');
+    const button=root.querySelector('button[data-action="page"]');
+    assert.ok(button,'page translation must be the separately named lower action');
     assert.equal(translations,0,'showing the launcher must not send page text');
     assert.equal(button.getAttribute('aria-label'),'翻译此页');
     button.click();await tick();await tick();
@@ -212,4 +213,25 @@ test('batch completions reject changed paragraphs and cancelled work never retur
   assert.equal(peak,2,'batching must not increase concurrent provider work');
   assert.equal(replies.length,3,'cancelled work must not schedule more batches');
   dom.window.close();
+});
+
+
+test('upper quick action opens a window without reading or translating page content',async()=>{
+  const dom=environment(),document=dom.window.document,roots=[],calls=[];
+  const attach=dom.window.Element.prototype.attachShadow;
+  dom.window.Element.prototype.attachShadow=function(options){const root=attach.call(this,options);roots.push(root);return root;};
+  const reader=new Reader(document,async(type,fields)=>{
+    calls.push({type,fields});if(type==='contentConfig')return config;
+  },'https://fixture.invalid/icon.png');
+  try {
+    await reader.initialize(false);
+    const root=roots.find(root=>root.host.dataset.shadowinput==='launcher');
+    const buttons=[...root.querySelectorAll('button')];
+    assert.equal(buttons.length,2);
+    assert.equal(buttons[0].getAttribute('aria-label'),'快捷翻译（新窗口）');
+    buttons[0].click();await tick();
+    assert.deepEqual(calls.slice(1),[{type:'openQuick',fields:undefined}]);
+    assert.equal(document.querySelector('[data-shadowinput="translation"]'),null);
+    assert.equal(reader.state().translated,false);
+  } finally {dom.window.close();}
 });

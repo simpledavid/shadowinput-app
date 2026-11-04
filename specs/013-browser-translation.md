@@ -17,8 +17,9 @@ follows Immersive Translate's public workflows.
 | EXT-09 | Site automation needs an explicit origin grant; content contexts cannot access account operations. |
 | EXT-10 | Website provides separate input-method DMG/EXE and browser ZIP with accurate verification/signing limits. |
 | EXT-11 | The popup exposes language, model and site controls in one view without a large page-translation button. Keep loading/sign-in/retry recovery and separate text/account links; restoring originals from the page needs no model lookup. |
-| EXT-12 | An activated webpage has one accessible SI translate/restore button. Persisting it requires an explicit per-origin grant and does not enable automatic translation; the two preferences remain independent. |
+| EXT-12 | An activated webpage has two accessible launcher buttons: upper Quick translation opens a separate window; lower SI translates/restores the current page. Persisting it requires an explicit per-origin grant and does not enable automatic translation; the two preferences remain independent. |
 | EXT-13 | Prioritize visible paragraphs, deduplicate repeated text and batch bounded short paragraphs while keeping the first request small. Validate every output ID before applying a completed batch; cancellation and changed text reject stale results. |
+| EXT-14 | Quick translation shares the account/model, opens with an empty draft, sends only explicitly submitted text and supports cancellation/copy. Reopening focuses a live owned window; content cannot choose an arbitrary window URL or access credentials. |
 
 Real Chrome installation, authorization and completed inference are mandatory for
 end-to-end acceptance; synthetic tests do not satisfy that gate. See

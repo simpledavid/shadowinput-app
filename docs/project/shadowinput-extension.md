@@ -12,8 +12,8 @@ Source code, interface and branding are shadowinput's own implementation.
 - Bilingual paragraphs, restore, selection, optional Shift-hover and preview/apply
   for unchanged plain inputs.
 - Optional automatic translation per explicitly authorized website.
-- Single-view popup controls and one SI page button; independently opt in to keep
-  that button on a website without automatic translation.
+- Single-view popup controls and a two-action page launcher; independently opt in to keep
+  that launcher on a website without automatic translation.
 - Chinese/English UI; Chinese/English/Japanese targets; cancellation and recovery.
 
 This is not production feature parity. PDF layout translation, EPUB export,
@@ -105,6 +105,34 @@ no extra translation request. Automated coordinate clicking cannot access the
 closed shadow root in that browser tool; DOM click tests cover the same action.
 These checks do not prove Chrome installation, persistent permission prompts or
 live GPT inference. The website and installed extension have not been replaced.
+
+## Quick translation window
+
+The upper launcher button opens a compact `quick.html` window. The lower SI button
+continues to translate/restore only the current page. The quick page reuses the
+workbench feature for account status, model/target preferences, explicit text
+translation, cancellation and copying; it has no automatic selection/clipboard
+capture and does not persist drafts or results. Closing its tab follows the same
+worker-owned job cancellation as the full workbench.
+
+The worker only opens the fixed internal URL, ignores caller-supplied text/URLs,
+and coalesces concurrent opens. It uses
+[Chrome extension contexts](https://developer.chrome.com/docs/extensions/reference/api/runtime#method-getContexts)
+to focus an existing quick page through the
+[window API](https://developer.chrome.com/docs/extensions/reference/api/windows#method-create).
+No new manifest permissions or browsing-history access are requested. Exact
+quick-page URLs join the trusted extension-page allowlist; content contexts gain
+only the fixed opening action and still cannot invoke account operations.
+
+DOM and worker fixtures cover upper/lower routing, no translation on opening,
+window creation/reuse, ignored untrusted fields, sender boundaries, explicit
+translation/copy and cancellation. The shared workbench also now gives model
+loading/failure placeholders and disables unusable selections until refresh
+succeeds. Browser-rendered Chinese/English light/dark fixtures fit the compact
+window content width, and keyboard activation verified the two launcher routes
+without changing page text from the quick action. Actual Chrome popup-window
+behavior and live provider inference remain manual acceptance gates after
+reloading the extension.
 
 ## Translation request efficiency
 

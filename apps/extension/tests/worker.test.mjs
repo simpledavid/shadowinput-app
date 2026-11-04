@@ -149,3 +149,38 @@ test('content batches use the owned account and cannot override model preference
     assert.equal(invalid.ok,false);assert.equal(calls,1);
   } finally {globalThis.fetch=original;}
 });
+
+
+test('quick-window page is trusted but lookalike URLs are not',async()=>{
+  const sender={id:'test-extension',url:'chrome-extension://test-extension/quick.html'};
+  const reply=await new Promise(resolve=>{
+    if(!events.message({type:'status'},sender,resolve))resolve({ok:false});
+  });
+  assert.equal(reply.ok,true);
+  for(const url of ['chrome-extension://test-extension/quick.html/extra','https://example.invalid/quick.html']) {
+    assert.equal(events.message({type:'status'},{...content,url},()=>{}),false);
+  }
+});
+
+test('content may open only the fixed quick window and rapid clicks share one creation',async()=>{
+  const opened=[],focused=[];let contexts=[];
+  chrome.runtime.getContexts=async filter=>{
+    assert.deepEqual(filter,{documentUrls:['chrome-extension://test-extension/quick.html']});
+    return contexts;
+  };
+  chrome.windows={
+    async create(options){opened.push(options);contexts=[{windowId:90,tabId:91,documentUrl:'chrome-extension://test-extension/quick.html'}];return {id:90};},
+    async update(id,options){focused.push({id,options});},
+  };
+  const send=()=>new Promise(resolve=>{
+    if(!events.message({type:'openQuick',url:'https://untrusted.invalid/',text:'private-canary'},content,resolve))resolve({ok:false});
+  });
+  const replies=await Promise.all([send(),send()]);
+  assert.ok(replies.every(reply=>reply.ok));
+  assert.deepEqual(opened,[{url:'chrome-extension://test-extension/quick.html',type:'popup',focused:true,width:680,height:620}]);
+  await send();
+  assert.equal(opened.length,1);
+  assert.deepEqual(focused,[{id:90,options:{focused:true}}]);
+  assert.doesNotMatch(JSON.stringify(opened),/private-canary|untrusted/);
+  assert.equal(events.message({type:'openQuick'},external,()=>{}),false);
+});

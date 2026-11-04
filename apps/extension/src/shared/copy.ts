@@ -2,6 +2,7 @@ import type {ErrorCode} from './errors.js';
 import type {Stage} from './diagnostics.js';
 export const copy = {
   zh: {
+    quickTitle:'快捷翻译',openWorkbench:'完整工作台',
     title:'读懂另一种语言。', subtitle:'用自己的 ChatGPT，翻译你眼前的文字。', preview:'浏览器验证版',
     connect:'使用 ChatGPT 继续', disconnect:'退出登录', connected:'已连接 ChatGPT',
     account:'你的 ChatGPT', waiting:'请在授权页面完成登录', verifying:'正在验证授权…',
@@ -41,6 +42,7 @@ export const copy = {
     } satisfies Record<ErrorCode,string>,
   },
   en: {
+    quickTitle:'Quick translation',openWorkbench:'Full workbench',
     title:'Read beyond one language.', subtitle:'Translate with your own ChatGPT account.',preview:'Browser preview',
     connect:'Continue with ChatGPT',disconnect:'Sign out',connected:'ChatGPT connected',
     account:'Your ChatGPT',waiting:'Complete sign-in in the authorization tab',verifying:'Verifying authorization…',

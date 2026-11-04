@@ -13,8 +13,12 @@ handles sign-in/progress/retry. Selection translation stays in the right-click
 menu. Alt+Shift+T toggles page translation; Alt+Shift+I previews the focused input.
 Chrome's shortcut settings can change these bindings.
 
-Opening the popup or using a page action adds one rounded SI button on that page.
-Click it to translate; click again to restore. Restore remains available without
+Opening the popup or using a page action adds a two-button launcher. The upper
+window icon opens Quick translation in a separate compact browser window; the
+lower SI button translates/restores the current page. Quick translation shares
+the existing account/model and translation behavior, starts with an empty draft
+and sends text only after submitting. It does not read the clipboard or import
+page text. Reopening focuses a live quick window without changing its draft. Restore remains available without
 reloading models or contacting the provider. Model loading and retry controls
 remain visible; unavailable models do not leave a blank list.
 

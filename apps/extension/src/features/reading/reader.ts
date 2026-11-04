@@ -38,7 +38,10 @@ export class Reader {
   async initialize(automatic=true):Promise<void> {
     const config=object(await this.send('contentConfig'));
     this.config=settings(config);
-    if(this.iconURL && !this.floating)this.floating=launcher(this.document,this.iconURL,()=>void this.action('toggle').catch(error=>this.showError(error)));
+    if(this.iconURL && !this.floating)this.floating=launcher(this.document,this.iconURL,{
+      quick:()=>void this.send('openQuick').catch(error=>this.showError(error)),
+      page:()=>void this.action('toggle').catch(error=>this.showError(error)),
+    });
     this.updateLauncher();
     if(automatic && config.automatic===true)await this.action('toggle');
   }
