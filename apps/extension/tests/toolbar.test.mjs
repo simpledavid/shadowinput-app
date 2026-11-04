@@ -11,7 +11,7 @@ function fixture(overrides={}) {
   for(const name of ['document','window','HTMLElement','HTMLParagraphElement','HTMLSelectElement','HTMLInputElement','HTMLButtonElement','Option'])globalThis[name]=dom.window[name];
   let closed=false;
   dom.window.close=()=>{closed=true;};
-  const values={settings:{target:'zh-CN',locale:'zh',model:'saved-model'},status:{connected:true},
+  const values={settings:{target:'zh-CN',locale:'zh',model:'saved-model'},status:{connected:true,email:'demo@example.invalid'},
     currentSite:{origin:'https://example.invalid',automatic:false,translated:false,hover:false},
     models:[{id:'first-model',name:'First model'},{id:'saved-model',name:'Saved model'}],...overrides};
   globalThis.chrome={runtime:{getURL:path=>'chrome-extension://fixture/'+path,async sendMessage(message){
@@ -89,8 +89,49 @@ test('account lookup failure retries status instead of starting authorization',a
   assert.equal(f.get('account').textContent,'重试连接');
   f.values.status={connected:true};
   f.get('account').click();await tick();
-  assert.equal(f.get('account').textContent,'ChatGPT · 已连接');
+  assert.equal(f.get('account').textContent,'退出登录');
   assert.equal(f.calls.some(call=>call.type==='connect'),false);
+});
+
+test('the popup shows the account and plan even on an unsupported page',async()=>{
+  const f=fixture({currentSite:new Error('unsupported_page')});await f.start();
+  assert.equal(visible(f.get('account-card')),true);
+  assert.equal(f.get('account-email').textContent,'demo@example.invalid');
+  assert.match(f.get('account-plan').textContent,/套餐.*用量限制/);
+  assert.equal(visible(f.get('account-plan')),true);
+  assert.equal(f.get('account').textContent,'退出登录');
+  assert.equal(f.calls.some(call=>call.type==='openTab' || call.type==='translate'),false);
+});
+
+test('signing out clears the popup identity and models and permits another sign-in',async()=>{
+  let finish;
+  const f=fixture({logout:()=>new Promise(resolve=>{finish=resolve;})});await f.start();
+  f.get('account').click();await tick();
+  assert.equal(f.calls.at(-1).type,'logout');
+  assert.equal(f.get('account').disabled,true);
+  f.get('account').click();
+  assert.equal(f.calls.filter(call=>call.type==='logout').length,1);
+  finish();await tick();
+  assert.equal(f.get('account-email').textContent,'');
+  assert.equal(visible(f.get('account-email')),false);
+  assert.equal(visible(f.get('account-plan')),false);
+  assert.equal(f.get('model').disabled,true);
+  assert.equal(f.get('model').value,'');
+  assert.equal(f.get('account').textContent,'连接 ChatGPT');
+  assert.equal(f.closed(),false);
+  f.get('account').click();await tick();
+  assert.equal(f.calls.at(-1).type,'connect');
+});
+
+test('a failed sign-out keeps account controls and allows a retry',async()=>{
+  const f=fixture({logout:new Error('storage_failed')});await f.start();
+  f.get('account').click();await tick();
+  assert.equal(f.calls.at(-1).type,'logout');
+  assert.equal(f.get('account-email').textContent,'demo@example.invalid');
+  assert.equal(f.get('model').value,'saved-model');
+  assert.equal(f.get('account').textContent,'退出登录');
+  assert.equal(f.get('account').disabled,false);
+  assert.equal(f.get('status').classList.contains('error'),true);
 });
 
 test('pinning requests only the current origin and never enables automatic translation',async()=>{

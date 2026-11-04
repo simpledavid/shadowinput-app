@@ -83,10 +83,14 @@ Publish this as a preview with those limits, not a Chrome Web Store release.
 Language, model/refresh, website automation, pinning, Shift-hover and input
 preview are directly visible in the popup. Page translation/restoration uses the
 SI launcher, keyboard shortcut or context menu; the large popup action and
-secondary Settings view have been removed at the user's request. The account
-entry owns sign-in/progress/retry, and model failures retain a retry control.
-Text and account links open the corresponding workbench sections; fragment URLs
-retain exact extension-page sender validation. The reader owns page/hover state
+secondary Settings view have been removed at the user's request. The inline account
+card shows the signed-in email, plan explanation and sign-out action even on
+unsupported pages. It also owns sign-in/progress/retry; model failures retain a
+retry control. Sign-out uses the existing worker lifecycle and clears local UI
+identity/model choices only after success. A failed sign-out preserves the account
+and shows a retryable error. Text translation and pending sign-in progress open
+the corresponding workbench sections; fragment URLs retain exact extension-page
+sender validation. The reader owns page/hover state
 and reports only two booleans to the popup. Restoring originals bypasses
 configuration/model reads and cancels the document's work.
 

@@ -8,8 +8,10 @@ See [installation](INSTALL.txt), [verification](../../docs/project/shadowinput-e
 The popup exposes target language, authorized model/refresh, automatic
 translation, the pinned SI button, Shift-hover and input preview in one view.
 There is no secondary Settings page or large page-translation button. Text
-translation and account management have separate links; the account link also
-handles sign-in/progress/retry. Selection translation stays in the right-click
+translation retains a separate link. An inline account card shows the signed-in
+email, plan limits and sign-out action, and handles sign-in/progress/retry.
+Sign-out clears the displayed identity and model choices after worker confirmation;
+a failed sign-out remains recoverable. Selection translation stays in the right-click
 menu. Alt+Shift+T toggles page translation; Alt+Shift+I previews the focused input.
 Chrome's shortcut settings can change these bindings.
 
