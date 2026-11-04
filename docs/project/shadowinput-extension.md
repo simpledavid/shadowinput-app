@@ -88,9 +88,10 @@ card shows the signed-in email, plan explanation and sign-out action even on
 unsupported pages. It also owns sign-in/progress/retry; model failures retain a
 retry control. Sign-out uses the existing worker lifecycle and clears local UI
 identity/model choices only after success. A failed sign-out preserves the account
-and shows a retryable error. Text translation and pending sign-in progress open
-the corresponding workbench sections; fragment URLs retain exact extension-page
-sender validation. The reader owns page/hover state
+and shows a retryable error. The redundant footer is removed; text translation
+uses the page launcher's Quick translation window. Pending sign-in progress opens
+the workbench account section; fragment URLs retain exact extension-page sender
+validation. The reader owns page/hover state
 and reports only two booleans to the popup. Restoring originals bypasses
 configuration/model reads and cancels the document's work.
 

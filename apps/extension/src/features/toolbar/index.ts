@@ -91,7 +91,6 @@ export async function mountToolbar():Promise<void> {
     }
     render();
   }
-  element('text',HTMLButtonElement).addEventListener('click',()=>void run(()=>openWorkbench('translation-form')));
   accountAction.addEventListener('click',()=>void run(async()=>{
     if(initializingFailed)await initialize();
     else if(signingIn)await openWorkbench('account');

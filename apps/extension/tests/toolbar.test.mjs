@@ -27,6 +27,7 @@ test('all controls are visible without a settings page or large page action',asy
   const f=fixture();await f.start();
   assert.equal(f.get('page-action'),null);
   assert.equal(f.get('settings'),null);
+  assert.equal(f.dom.window.document.querySelector('footer'),null);
   for(const id of ['target','model','refresh','automatic','pinned','hover','input'])assert.equal(visible(f.get(id)),true,id);
   assert.equal(f.get('model').value,'saved-model');
   assert.equal(f.calls.some(call=>call.type==='pageAction'),false,'opening controls must not translate');
@@ -47,7 +48,7 @@ test('model failures remain recoverable without any page translation action',asy
   assert.equal(f.calls.some(call=>call.type==='pageAction'),false,'retry must not send webpage text');
 });
 
-test('account entry signs in and unsupported pages keep text translation available',async()=>{
+test('account entry signs in and unsupported pages keep account and model controls available',async()=>{
   const f=fixture({status:{connected:false}});await f.start();
   assert.equal(f.get('account').textContent,'连接 ChatGPT');
   assert.equal(f.calls.some(call=>call.type==='models'),false);
@@ -56,8 +57,8 @@ test('account entry signs in and unsupported pages keep text translation availab
   assert.equal(visible(other.get('automatic')),false);
   assert.match(other.get('status').textContent,/切换到/);
   assert.equal(other.get('status').classList.contains('error'),false);
-  other.get('text').click();await tick();
-  assert.match(other.calls.find(call=>call.type==='openTab').url,/#translation-form$/);
+  assert.equal(visible(other.get('account')),true);
+  assert.equal(other.get('model').disabled,false);
 });
 
 test('target changes preserve the chosen model and model changes remain saved',async()=>{
