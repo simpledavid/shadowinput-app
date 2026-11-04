@@ -1,4 +1,5 @@
 import {copy,type Locale} from '../../shared/copy.js';
+import {toolbarCopy} from '../../shared/toolbar-copy.js';
 import {errorCode} from '../../shared/errors.js';
 import {request} from '../../shared/rpc.js';
 import {object,requiredString} from '../../shared/validation.js';
@@ -46,6 +47,7 @@ export function mountWorkbench(): void {
     source.placeholder = t.placeholder; result.placeholder = t.empty;
     Array.from(target.options).forEach((option,index)=>{option.textContent=t.languages[index] ?? '';});
     lastNotice = '';
+    if(model.disabled || !model.options.length)modelPlaceholder();
     updateButtons();
   }
   function updateButtons(): void {
@@ -61,27 +63,36 @@ export function mountWorkbench(): void {
   function showError(reason:unknown):void {
     error.textContent=t.errors[errorCode(reason)]+diagnosticText(diagnosticOf(reason),t.stages);
   }
+  function modelPlaceholder():void {
+    const labels=toolbarCopy[language.value==='zh'?'zh':'en'];
+    model.replaceChildren(new Option(loadingModels?labels.loading:connected?labels.unavailable:labels.signedOut,''));
+    model.disabled=true;
+  }
   async function loadModels(): Promise<void> {
     if (loadingModels) return;
-    loadingModels = true;
+    savedModel=model.value || savedModel;
+    loadingModels = true;modelPlaceholder();updateButtons();
     try {
       const list = await request('models');
       if (!Array.isArray(list)) throw new Error('invalid_response');
-      const selected = model.value || savedModel;
+      if (!list.length) throw new Error('plan_permission');
+      const selected = savedModel;
       const options = list.map(value=>{
         const item=object(value);
         return new Option(requiredString(item.name),requiredString(item.id));
       });
-      model.replaceChildren(...options);
+      model.replaceChildren(...options);model.disabled=false;
       if (options.some(option=>option.value === selected)) model.value=selected;
       await save();
       updateButtons();
-    } finally { loadingModels=false; }
+    } catch(reason) {loadingModels=false;modelPlaceholder();throw reason;}
+    finally {loadingModels=false;updateButtons();}
   }
   async function refresh(): Promise<void> {
     const data=object(await request('status'));
     const newlyConnected=!connected && data.connected === true;
     connected=data.connected === true;
+    if(!connected && !loadingModels)modelPlaceholder();
     connect.hidden=connected || data.pending === true || data.notice === 'verifying';
     logout.hidden=!connected;
     cancelSignIn.hidden=data.pending !== true;

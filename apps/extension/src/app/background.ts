@@ -5,6 +5,7 @@ import {errorCode} from '../shared/errors.js';
 import {diagnosticOf,parseDiagnostic,type Diagnostic} from '../shared/diagnostics.js';
 import {object,requiredString} from '../shared/validation.js';
 import {store,ready} from './store.js';
+import {openQuickWindow} from './quick-window.js';
 import {pending} from './pending.js';
 import {preferences,savePreferences,currentSite,currentAction,setAutomatic,setPinned,contentConfig,sendAction,origin} from './sites.js';
 
@@ -90,6 +91,7 @@ async function dispatch(raw: unknown, sender: chrome.runtime.MessageSender): Pro
     case 'setPinned': return ordered(()=>setPinned(requiredString(message.origin),message.enabled===true));
     case 'setAutomatic': return ordered(()=>setAutomatic(requiredString(message.origin),message.enabled===true));
     case 'pageAction': return currentAction(requiredString(message.action));
+    case 'openQuick': return openQuickWindow();
     case 'contentConfig': return contentConfig(requiredString(sender.url));
     case 'translateBlock': {
       const config=await preferences();
@@ -122,12 +124,12 @@ chrome.tabs.onRemoved.addListener(tabID=>{
 });
 chrome.runtime.onMessage.addListener((message:unknown,sender,respond)=>{
   if (sender.id !== chrome.runtime.id) return false;
-  const trustedPage=[page,chrome.runtime.getURL('popup.html')].includes((sender.url ?? '').split('#')[0] ?? '');
+  const trustedPage=[page,chrome.runtime.getURL('popup.html'),chrome.runtime.getURL('quick.html')].includes((sender.url ?? '').split('#')[0] ?? '');
   if(!trustedPage) {
     if(sender.tab?.id===undefined || sender.frameId!==0 || !sender.documentId)return false;
     try {
       origin(requiredString(sender.url));
-      if(!['translateBlock','translateBatch','contentConfig','cancel'].includes(String(object(message).type)))return false;
+      if(!['translateBlock','translateBatch','contentConfig','cancel','openQuick'].includes(String(object(message).type)))return false;
     } catch {return false;}
   }
   if(sender.documentId && sender.tab?.id!==undefined)documentTabs.set(sender.documentId,sender.tab.id);
