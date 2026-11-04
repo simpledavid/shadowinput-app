@@ -7,6 +7,7 @@ import {object,requiredString} from '../../shared/validation.js';
 import {paragraphs,originalText,annotate,restore} from './paragraphs.js';
 import {draft} from './draft.js';
 import {card} from './card.js';
+import {launcher} from './launcher.js';
 
 type Send=(type:string,fields?:Record<string,unknown>)=>Promise<unknown>;
 export class Reader {
@@ -22,7 +23,8 @@ export class Reader {
   private hoverTimer:ReturnType<typeof setTimeout>|undefined;
   private mutationTimer:ReturnType<typeof setTimeout>|undefined;
   private observer:MutationObserver;
-  constructor(private document:Document,private send:Send) {
+  private floating:ReturnType<typeof launcher>|undefined;
+  constructor(private document:Document,private send:Send,private iconURL?:string) {
     this.observer=new MutationObserver(changes=>{
       if(!this.enabled || changes.every(change=>Array.from(change.addedNodes).every(node=>node instanceof Element && node.hasAttribute('data-shadowinput'))))return;
       clearTimeout(this.mutationTimer);
@@ -34,9 +36,15 @@ export class Reader {
   async initialize(automatic=true):Promise<void> {
     const config=object(await this.send('contentConfig'));
     this.config=settings(config);
+    if(this.iconURL && !this.floating)this.floating=launcher(this.document,this.iconURL,()=>void this.action('toggle').catch(error=>this.showError(error)));
+    this.updateLauncher();
     if(automatic && config.automatic===true)await this.action('toggle');
   }
+  private updateLauncher():void {this.floating?.update(this.config.locale,this.state().translated);}
   private get text(){return readingCopy[this.config.locale];}
+  state():{translated:boolean;hover:boolean} {
+    return {translated:this.enabled || !!this.document.querySelector('[data-shadowinput="translation"]'),hover:this.hoverEnabled};
+  }
   private error(error:unknown):string {
     const text=copy[this.config.locale];
     return text.errors[errorCode(error)]+diagnosticText(diagnosticOf(error),text.stages);
@@ -56,13 +64,14 @@ export class Reader {
     this.cache.set(key,translated);return translated;
   }
   async action(action:string):Promise<void> {
+    if(action==='restore' || (action==='toggle' && this.state().translated)){this.stop();return;}
     const started=this.generation;
     try {
       this.config=settings(await this.send('contentConfig'));
       if(!this.config.model)throw new Error('sign_in_required');
-      if(action==='toggle') {
-        if(this.enabled || this.document.querySelector('[data-shadowinput="translation"]')){this.stop();return;}
-        this.enabled=true;this.count=0;this.seen=new WeakSet();this.generation++;
+      if(action==='toggle' || action==='translate') {
+        if(this.state().translated)return;
+        this.enabled=true;this.updateLauncher();this.count=0;this.seen=new WeakSet();this.generation++;
         await this.scan();
       } else if(action==='selection')await this.selection();
       else if(action==='input')await this.input();
@@ -71,10 +80,11 @@ export class Reader {
         this.panel('shadowinput').body.textContent=this.hoverEnabled?this.text.hoverReady:this.text.close;
       }
     } catch(error){if(started===this.generation)this.panel('shadowinput').body.textContent=this.error(error);}
+    finally {this.updateLauncher();}
   }
   private stop():void {
     this.enabled=false;this.generation++;this.activeScan=undefined;this.observer.takeRecords();
-    restore(this.document);this.cache.clear();this.seen=new WeakSet();
+    restore(this.document);this.updateLauncher();this.cache.clear();this.seen=new WeakSet();
     void this.send('cancel').catch(error=>{this.panel('shadowinput').body.textContent=this.error(error);});
     this.document.querySelector('[data-shadowinput="panel"]')?.remove();
   }
@@ -105,7 +115,7 @@ export class Reader {
         panel.body.textContent=this.error(error);this.enabled=false;this.generation++;await this.send('cancel');
       }
     }
-    finally{if(this.activeScan===generation)this.activeScan=undefined;}
+    finally{if(this.activeScan===generation)this.activeScan=undefined;this.updateLauncher();}
   }
   private async selection():Promise<void> {
     const selected=this.document.getSelection()?.toString().trim() ?? '';

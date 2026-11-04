@@ -6,7 +6,7 @@ import {diagnosticOf,parseDiagnostic,type Diagnostic} from '../shared/diagnostic
 import {object,requiredString} from '../shared/validation.js';
 import {store,ready} from './store.js';
 import {pending} from './pending.js';
-import {preferences,savePreferences,currentSite,setAutomatic,contentConfig,sendAction,origin} from './sites.js';
+import {preferences,savePreferences,currentSite,currentAction,setAutomatic,setPinned,contentConfig,sendAction,origin} from './sites.js';
 
 const account = new Account(store);
 const page = chrome.runtime.getURL('panel.html');
@@ -87,11 +87,9 @@ async function dispatch(raw: unknown, sender: chrome.runtime.MessageSender): Pro
     case 'settings': return preferences();
     case 'saveSettings': return savePreferences(message.settings);
     case 'currentSite': return currentSite();
+    case 'setPinned': return ordered(()=>setPinned(requiredString(message.origin),message.enabled===true));
     case 'setAutomatic': return ordered(()=>setAutomatic(requiredString(message.origin),message.enabled===true));
-    case 'pageAction': {
-      const site=await currentSite();
-      return sendAction(site.tabID,requiredString(message.action));
-    }
+    case 'pageAction': return currentAction(requiredString(message.action));
     case 'contentConfig': return contentConfig(requiredString(sender.url));
     case 'translateBlock': {
       const config=await preferences();
@@ -120,7 +118,7 @@ chrome.tabs.onRemoved.addListener(tabID=>{
 });
 chrome.runtime.onMessage.addListener((message:unknown,sender,respond)=>{
   if (sender.id !== chrome.runtime.id) return false;
-  const trustedPage=[page,chrome.runtime.getURL('popup.html')].includes(sender.url ?? '');
+  const trustedPage=[page,chrome.runtime.getURL('popup.html')].includes((sender.url ?? '').split('#')[0] ?? '');
   if(!trustedPage) {
     if(sender.tab?.id===undefined || sender.frameId!==0 || !sender.documentId)return false;
     try {

@@ -5,18 +5,28 @@ See [installation](INSTALL.txt), [verification](../../docs/project/shadowinput-e
 [requirements](../../specs/013-browser-translation.md) and
 [ADR 037](../../docs/decisions/037-standalone-browser-extension.md).
 
-Toolbar actions provide bilingual main-content paragraphs, original restoration,
-selection translation, optional Shift-hover and preview/apply for unchanged plain
-inputs. The account page also translates typed text. Alt+Shift+T toggles page
-translation; Alt+Shift+I previews the focused input. Chrome's shortcut settings
-can change these bindings. Choose a model returned by the authorized account.
+The compact popup shows a target language, one translate/restore action and the
+current website's automatic-translation switch. Settings holds the authorized
+model, refresh, optional Shift-hover and plain-input preview. Text translation
+and account management have separate links. Selection translation stays in the
+right-click menu. Alt+Shift+T toggles page translation; Alt+Shift+I previews the
+focused input. Chrome's shortcut settings can change these bindings.
+
+Opening the popup or using a page action adds one rounded SI button on that page.
+Click it to translate; click again to restore. Restore remains available without
+reloading models or contacting the provider. Loading, sign-in and retry states
+replace the main action when needed; unavailable models do not leave a blank list.
 
 Reading is capped at 120 paragraphs per run with two requests per document.
 Original DOM nodes remain intact. Output is inert text in isolated shadow roots.
 Changed paragraphs/drafts reject stale results. Hidden content, code, password
 fields and rich editors are excluded. Restore cancels that document's work.
 
-Site automation is off by default. Enabling it requests one origin's permission.
+Site automation and a pinned SI button are both off by default. Each requests
+only the chosen origin's permission. In Settings, "Keep SI on this website"
+shows the button on future visits without translating automatically. Turning off
+either option preserves the other's registration. Unpinning takes effect on the
+next visit; the current page keeps its already-opened button.
 Original text and translations are never persisted. A bounded document cache
 clears on restore/navigation. No analytics, desktop helper, API-key requirement,
 ChatGPT cookie access or desktop credential sharing is included.
@@ -68,4 +78,5 @@ Generated ZIP/unpacked files are in ignored `dist/`. TypeScript emits local
 extension modules; esbuild bundles the isolated content script. No remote scripts
 or runtime framework dependencies are loaded. SI PNG assets are transparent exports
 of [the shared rounded SI vector](../shadowinput-site/public/favicon.svg), preserving
-alpha at the corners. In-page branding uses the large export for high-density screens.
+alpha at the corners. The floating button exposes only its local SI icon as a
+web-accessible resource; extension pages and scripts are not exposed.

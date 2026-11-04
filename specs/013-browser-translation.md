@@ -16,6 +16,8 @@ follows Immersive Translate's public workflows.
 | EXT-08 | Preview plain-input translation; reject changed drafts, passwords and unsupported rich editors. |
 | EXT-09 | Site automation needs an explicit origin grant; content contexts cannot access account operations. |
 | EXT-10 | Website provides separate input-method DMG/EXE and browser ZIP with accurate verification/signing limits. |
+| EXT-11 | The compact popup has one stateful translate/restore action, clear loading/sign-in/retry states, secondary settings and separate text/account links. Restoring originals needs no model lookup. |
+| EXT-12 | An activated webpage has one accessible SI translate/restore button. Persisting it requires an explicit per-origin grant and does not enable automatic translation; the two preferences remain independent. |
 
 Real Chrome installation, authorization and completed inference are mandatory for
 end-to-end acceptance; synthetic tests do not satisfy that gate. See

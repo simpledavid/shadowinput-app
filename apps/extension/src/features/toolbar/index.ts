@@ -1,79 +1,155 @@
 import {copy} from '../../shared/copy.js';
 import {readingCopy} from '../../shared/reading-copy.js';
+import {toolbarCopy} from '../../shared/toolbar-copy.js';
 import {request} from '../../shared/rpc.js';
 import {errorCode} from '../../shared/errors.js';
 import {settings} from '../../shared/settings.js';
 import {object,requiredString} from '../../shared/validation.js';
 import {diagnosticOf,diagnosticText} from '../../shared/diagnostics.js';
 
+type Site={origin:string;automatic:boolean;pinned:boolean;translated:boolean;hover:boolean};
+type ModelState='loading'|'ready'|'failed';
+function element<T extends HTMLElement>(id:string,constructor:{new():T}):T {
+  const node=document.getElementById(id);
+  if(!(node instanceof constructor))throw new Error('invalid_response');
+  return node;
+}
+
 export async function mountToolbar():Promise<void> {
-  const config=settings(await request('settings'));
-  const text=readingCopy[config.locale],t=copy[config.locale];
+  let config=settings(await request('settings'));
+  const t=copy[config.locale],reading=readingCopy[config.locale],text=toolbarCopy[config.locale];
+  const home=element('home',HTMLElement),panel=element('settings-panel',HTMLElement);
+  const toggle=element('settings',HTMLButtonElement),primary=element('page-action',HTMLButtonElement);
+  const target=element('target',HTMLSelectElement),model=element('model',HTMLSelectElement);
+  const pinned=element('pinned',HTMLInputElement),automatic=element('automatic',HTMLInputElement),hover=element('hover',HTMLInputElement);
+  const status=element('status',HTMLParagraphElement),accountLink=element('account',HTMLButtonElement);
+  const refresh=element('refresh',HTMLButtonElement),input=element('input',HTMLButtonElement);
+  let site:Site|undefined,connected=false,checking=true,models:ModelState='loading',busy=false;
+  let initializingFailed=false,signingIn=false;
+  let notice:{text:string;error:boolean}|undefined;
   document.documentElement.lang=config.locale==='zh'?'zh-CN':'en';
-  const status=document.querySelector('p[role="status"]'),actions=document.querySelector('section');
-  const target=document.querySelector('#target'),model=document.querySelector('#model');
-  const automatic=document.querySelector('#automatic');
-  if(!(status instanceof HTMLParagraphElement) || !(actions instanceof HTMLElement) ||
-    !(target instanceof HTMLSelectElement) || !(model instanceof HTMLSelectElement) || !(automatic instanceof HTMLInputElement))throw new Error('invalid_response');
-  const targetField=target,modelField=model;
-  const pageButtons=Array.from(document.querySelectorAll<HTMLButtonElement>('[data-action]'));
-  pageButtons.forEach(button=>{button.disabled=true;});
   document.querySelectorAll<HTMLElement>('[data-copy]').forEach(node=>{
-    for(const [key,value] of Object.entries({...text,...t}))if(key===node.dataset.copy && typeof value==='string')node.textContent=value;
+    for(const [key,value] of Object.entries({...t,...reading,...text}))if(key===node.dataset.copy && typeof value==='string')node.textContent=value;
   });
   Array.from(target.options).forEach((option,index)=>{option.textContent=t.languages[index] ?? '';});
   target.value=config.target;
-  async function run(action:()=>Promise<void>) {
-    status!.textContent='';
-    status!.classList.add('error');
-    try{await action();}catch(error){status!.textContent=t.errors[errorCode(error)]+diagnosticText(diagnosticOf(error),t.stages);}
+  accountLink.title=text.account;
+  automatic.title=reading.autoHint;
+
+  function render():void {
+    const canTranslate=connected && models==='ready';
+    primary.textContent=site?.translated?reading.restore:checking?text.checking:initializingFailed?text.retry:signingIn?text.progress:!connected?t.connect:!site?text.openText:
+      models==='loading'?text.loading:models==='failed'?text.retry:text.page;
+    primary.disabled=busy || (!site?.translated && (checking || (!initializingFailed && connected && !!site && models==='loading')));
+    target.disabled=busy || checking || (connected && models==='loading');
+    model.disabled=busy || models!=='ready' || !connected;
+    refresh.disabled=busy || checking || !connected || models==='loading';
+    automatic.disabled=busy || !site || (!site.automatic && !canTranslate);
+    pinned.disabled=busy || !site;
+    hover.disabled=busy || !canTranslate;
+    input.disabled=busy || !canTranslate;
+    element('page-tools',HTMLElement).hidden=!site;
+    const group=document.querySelector('.site-setting');
+    if(group instanceof HTMLElement)group.hidden=!site;
+    element('automatic-hint',HTMLElement).hidden=!site?.automatic;
+    accountLink.textContent=connected?text.connected:text.signedOut;
+    status.textContent=notice?.text ?? (!checking && !site?reading.noPage:'');
+    status.classList.toggle('error',notice?.error===true);
   }
-  const account=object(await request('status'));
-  const login=document.querySelector('#connect');
-  if(!(login instanceof HTMLButtonElement))throw new Error('invalid_response');
-  login.hidden=account.connected===true;
-  actions.hidden=account.connected!==true;
-  login.addEventListener('click',()=>void run(async()=>{await request('connect');window.close();}));
-  document.querySelector('#settings')?.addEventListener('click',()=>{void chrome.tabs.create({url:chrome.runtime.getURL('panel.html')});window.close();});
-  let host:string|undefined;
-  try {
-    const site=object(await request('currentSite'));host=requiredString(site.origin);automatic.checked=site.automatic===true;
-    const hostLabel=document.querySelector('#host');if(hostLabel)hostLabel.textContent=new URL(host).hostname;
-  } catch(error) {
-    const unsupported=errorCode(error)==='unsupported_page';
-    status.classList.toggle('error',!unsupported);
-    status.textContent=unsupported?text.noPage:t.errors[errorCode(error)];
+  function showError(error:unknown):void {
+    notice={text:t.errors[errorCode(error)]+diagnosticText(diagnosticOf(error),t.stages),error:true};render();
   }
-  const siteSetting=document.querySelector('.site-setting');
-  if(siteSetting instanceof HTMLElement)siteSetting.hidden=!host;
-  automatic.disabled=!host;
-  automatic.addEventListener('change',()=>{
-    const enabled=automatic.checked;
-    if(!host)return;
-    const chosenHost=host;
-    // Permission is requested directly from this user gesture, for one origin.
-    const granted=enabled?chrome.permissions.request({origins:[chosenHost+'/*']}):Promise.resolve(true);
-    void run(async()=>{
-      if(!await granted){automatic.checked=false;throw new Error('site_permission');}
-      await request('setAutomatic',{origin:chosenHost,enabled});
-      status!.textContent=text.save;
-    });
+  async function run(action:()=>Promise<void>):Promise<void> {
+    if(busy)return;
+    busy=true;notice=undefined;render();
+    try{await action();}catch(error){showError(error);}finally{busy=false;render();}
+  }
+  async function openWorkbench(anchor:string):Promise<void> {
+    await chrome.tabs.create({url:chrome.runtime.getURL('panel.html')+'#'+anchor});window.close();
+  }
+  async function save():Promise<void> {
+    const next=settings({...config,target:target.value,model:model.value || config.model});
+    try {await request('saveSettings',{settings:next});config=next;}
+    catch(error){target.value=config.target;model.value=config.model;throw error;}
+  }
+  async function loadModels():Promise<void> {
+    models='loading';model.replaceChildren(new Option(text.loading,''));render();
+    try {
+      const list=await request('models');
+      if(!Array.isArray(list))throw new Error('invalid_response');
+      if(!list.length)throw new Error('plan_permission');
+      const options=list.map(value=>{const item=object(value);return new Option(requiredString(item.name),requiredString(item.id));});
+      model.replaceChildren(...options);
+      if(options.some(option=>option.value===config.model))model.value=config.model;
+      if(model.value!==config.model)await save();
+      models='ready';
+    } catch(error) {
+      models='failed';model.replaceChildren(new Option(text.unavailable,''));
+      if(errorCode(error)==='sign_in_required')connected=false;
+      showError(error);
+    }
+    render();
+  }
+  toggle.addEventListener('click',()=>{
+    panel.hidden=!panel.hidden;home.hidden=!panel.hidden;
+    toggle.textContent=panel.hidden?text.settings:text.back;
+    toggle.setAttribute('aria-expanded',String(!panel.hidden));
   });
-  async function save() {
-    await request('saveSettings',{settings:{...config,target:targetField.value,model:modelField.value}});
-  }
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape' && !panel.hidden){event.preventDefault();toggle.click();toggle.focus();}
+  });
+  element('text',HTMLButtonElement).addEventListener('click',()=>void run(()=>openWorkbench('translation-form')));
+  accountLink.addEventListener('click',()=>void run(()=>openWorkbench('account')));
   target.addEventListener('change',()=>void run(save));
   model.addEventListener('change',()=>void run(save));
-  pageButtons.forEach(button=>{
-    button.addEventListener('click',()=>void run(async()=>{await save();await request('pageAction',{action:button.dataset.action});window.close();}));
-  });
-  if(account.connected===true)try {
-    const list=await request('models');
-    if(!Array.isArray(list))throw new Error('invalid_response');
-    const options=list.map(value=>{const item=object(value);return new Option(requiredString(item.name),requiredString(item.id));});
-    model.replaceChildren(...options);
-    if(options.some(option=>option.value===config.model))model.value=config.model;
-    await save();
-    pageButtons.forEach(button=>{button.disabled=!host || !model.value;});
-  } catch(error) {status.classList.add('error');status.textContent=t.errors[errorCode(error)]+diagnosticText(diagnosticOf(error),t.stages);}
+  refresh.addEventListener('click',()=>void run(loadModels));
+  primary.addEventListener('click',()=>void run(async()=>{
+    if(site?.translated){await request('pageAction',{action:'restore'});window.close();}
+    else if(initializingFailed)await initialize();
+    else if(signingIn)await openWorkbench('account');
+    else if(!connected){await request('connect');window.close();}
+    else if(!site)await openWorkbench('translation-form');
+    else if(models==='failed')await loadModels();
+    else if(models==='ready'){await save();await request('pageAction',{action:'translate'});window.close();}
+  }));
+  function siteSwitch(control:HTMLInputElement,key:'automatic'|'pinned',operation:string):void {
+    control.addEventListener('change',()=>{
+      if(!site || busy)return;
+      const selected=site,enabled=control.checked;
+      // Request only this origin directly from the explicit user gesture.
+      const grant=enabled?chrome.permissions.request({origins:[selected.origin+'/*']}):Promise.resolve(true);
+      void run(async()=>{
+        try {
+          if(!await grant)throw new Error('site_permission');
+          await request(operation,{origin:selected.origin,enabled});selected[key]=enabled;
+        } finally {control.checked=selected[key];}
+      });
+    });
+  }
+  siteSwitch(automatic,'automatic','setAutomatic');
+  siteSwitch(pinned,'pinned','setPinned');
+  hover.addEventListener('change',()=>void run(async()=>{
+    if(!site)return;
+    try {await request('pageAction',{action:'hover'});site.hover=hover.checked;window.close();}
+    finally {hover.checked=site.hover;}
+  }));
+  input.addEventListener('click',()=>void run(async()=>{await request('pageAction',{action:'input'});window.close();}));
+  async function initialize():Promise<void> {
+    checking=true;initializingFailed=false;signingIn=false;site=undefined;notice=undefined;render();
+    const [account,current]=await Promise.allSettled([request('status'),request('currentSite')]);
+    if(current.status==='fulfilled') {
+      const value=object(current.value);
+      site={origin:requiredString(value.origin),automatic:value.automatic===true,pinned:value.pinned===true,translated:value.translated===true,hover:value.hover===true};
+      automatic.checked=site.automatic;pinned.checked=site.pinned;hover.checked=site.hover;
+      const host=element('host',HTMLParagraphElement);host.textContent=new URL(site.origin).hostname;host.title=host.textContent;
+    } else if(errorCode(current.reason)!=='unsupported_page'){initializingFailed=true;showError(current.reason);}
+    checking=false;
+    if(account.status==='rejected'){initializingFailed=true;showError(account.reason);render();return;}
+    const identity=object(account.value);
+    connected=identity.connected===true;signingIn=identity.pending===true || identity.notice==='verifying';
+    if(connected)await loadModels();
+    else {models='failed';model.replaceChildren(new Option(text.signedOut,''));}
+    render();
+  }
+  await initialize();
 }
