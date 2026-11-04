@@ -113,3 +113,18 @@ func TestPhraseCompletionHasShortBudgetAndSuffixContract(t *testing.T) {
 		t.Fatalf("%q %v", text, err)
 	}
 }
+
+func TestWordAssociationUsesSmallBudgetWithoutThinking(t *testing.T) {
+	r := request()
+	r.Task, r.Text = domain.TaskAssociateWord, "部门"
+	g := Generator{Chat: completeFunc(func(_ context.Context, p prompt.ChatRequest) (engine.Result, error) {
+		if p.MaxTokens > 64 || p.AllowThinking || p.Stream || len(p.Messages) != 2 || p.Messages[1].Content != r.Text {
+			t.Fatalf("not a short word association: %+v", p)
+		}
+		return engine.Result{Text: "负责人"}, nil
+	})}
+	text, err := g.Generate(context.Background(), r, nil)
+	if err != nil || text != "负责人" {
+		t.Fatalf("%q %v", text, err)
+	}
+}

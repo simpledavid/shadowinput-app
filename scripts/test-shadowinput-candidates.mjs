@@ -10,7 +10,7 @@ const windows=process.platform==='win32',cross=process.argv.includes('--cross-wi
 const cxx=process.env.CXX??(windows?'g++':'c++');
 const source=path.join(root,'apps/desktop/ime/shadowinput');
 const state=path.join(output,windows?'candidate-state.exe':'candidate-state');
-for(const fixture of ['continuation_test.cpp','candidate_state_test.cpp']) {
+for(const fixture of ['continuation_test.cpp','candidate_state_test.cpp','phrase_choices_test.cpp']) {
  run(cxx,['-std=c++17','-Wall','-Wextra','-Werror',path.join(source,fixture),'-o',state]);
  run(state,[]);
 }

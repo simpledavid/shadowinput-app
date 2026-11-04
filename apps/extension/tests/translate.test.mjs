@@ -118,3 +118,73 @@ test('final output never turns partial, refused or empty assistant content into 
   const output=[{...message,phase:'commentary',content:[{type:'output_text',text:'private-commentary-canary'}]},message];
   assert.equal(await readTranslation(stream([partial,{type:'response.completed',response:{status:'completed',output}}])),'Final translation');
 });
+
+function item(text, extra={}) {
+  return {type:'message',id:'synthetic-message',role:'assistant',status:'completed',content:[{type:'output_text',text}],...extra};
+}
+function itemDone(message, index=0) {
+  return {type:'response.output_item.done',output_index:index,item:message};
+}
+const emptyCompletion={type:'response.completed',response:{status:'completed',output:[]}};
+
+test('completed item translation survives an empty terminal output without accepting raw deltas',async()=>{
+  const events=[
+    {type:'response.output_text.delta',delta:'partial-canary'},
+    itemDone(item('你好，世界。')),
+    emptyCompletion,
+  ];
+  assert.equal(await translate('synthetic','Hello, world.','zh-CN','model-test',new AbortController().signal,async()=>stream(events)),'你好，世界。');
+});
+
+test('item-only completion preserves message order and excludes commentary without duplication',async()=>{
+  const events=[
+    itemDone(item('private-commentary-canary',{phase:'commentary'}),0),
+    itemDone(item('第二段',{phase:'final_answer'}),2),
+    itemDone(item('第一段',{phase:'final_answer'}),1),
+    itemDone(item('第一段',{phase:'final_answer'}),1),
+    emptyCompletion,
+  ];
+  assert.equal(await readTranslation(stream(events,1)),'第一段\n第二段');
+});
+
+test('item completion never bypasses a failed, interrupted or incomplete response',async()=>{
+  const done=itemDone(item('partial-canary'));
+  for(const tail of [[],[{type:'response.failed',response:{error:{code:'subscription_sharing_usage_limit_exceeded'}}}],
+    [{type:'response.incomplete'}],[{type:'response.refusal.done'}]]) {
+    await assert.rejects(readTranslation(stream([done,...tail])));
+  }
+  for(const message of [item('partial-canary',{status:'incomplete'}),item('',{content:[{type:'refusal'}]}),item('private-commentary-canary',{phase:'commentary'})]) {
+    await assert.rejects(readTranslation(stream([itemDone(message),emptyCompletion])));
+  }
+});
+
+test('an explicit final message remains authoritative over earlier completed items',async()=>{
+  const prior=itemDone(item('old-canary'));
+  assert.equal(await readTranslation(stream([prior,{type:'response.completed',response:{status:'completed',output:[item('Final translation')]}}])),'Final translation');
+  for(const message of [item(''),item('partial',{status:'incomplete'}),item('',{content:[{type:'refusal'}]}),item('commentary',{phase:'commentary'})]) {
+    await assert.rejects(readTranslation(stream([prior,{type:'response.completed',response:{status:'completed',output:[message]}}])));
+  }
+});
+
+test('unfinished item state, malformed indices and oversized done text cannot be applied',async()=>{
+  const added={type:'response.output_item.added',output_index:1,item:item('partial',{status:'in_progress'})};
+  await assert.rejects(readTranslation(stream([itemDone(item('first')),added,emptyCompletion])),/incomplete_response/);
+  for(const index of [-1,0.5,'0',1024])await assert.rejects(readTranslation(stream([itemDone(item('text'),index),emptyCompletion])),/invalid_response/);
+  await assert.rejects(readTranslation(stream([itemDone(item('x'.repeat(256001))),emptyCompletion],8192)),/incomplete_response/);
+  await assert.rejects(readTranslation(stream([itemDone(item('private-commentary-canary',{phase:'commentary'})),{type:'response.completed',response:{status:'completed'}}])),/incomplete_response/);
+});
+
+test('empty output diagnostics distinguish missing completion from absent final text without retaining content',async()=>{
+  const cases=[
+    [[], 'empty_output'],
+    [[{type:'response.output_text.delta',delta:'private-delta-canary'}],'missing_completed_text'],
+    [[itemDone(item('private-commentary-canary',{phase:'commentary'}))],'no_final_text'],
+  ];
+  for(const [events,reason] of cases) {
+    await assert.rejects(translate('synthetic','hello','zh-CN','model-test',new AbortController().signal,async()=>stream([...events,emptyCompletion])),error=>{
+      assert.equal(error.diagnostic.reason,reason);
+      assert.doesNotMatch(JSON.stringify(error),/private-|hello/);
+      return true;
+    });
+  }
+});

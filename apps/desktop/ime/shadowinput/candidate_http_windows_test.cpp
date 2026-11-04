@@ -60,7 +60,7 @@ static void successfulRequestReturnsBody(ShadowRequestKind kind) {
         SOCKET peer=accept(listener.socket,nullptr,nullptr);
         if(peer==INVALID_SOCKET)return false;
         char buffer[4096];int count=recv(peer,buffer,sizeof(buffer),0);
-        std::string expected=kind==ShadowRequestKind::Ranking?"POST /rank ":"POST /candidate ";
+        std::string expected=kind==ShadowRequestKind::Ranking?"POST /rank ":kind==ShadowRequestKind::PhraseModel?"POST /phrase-model ":"POST /candidate ";
         bool route=count>0 && std::string(buffer,count).rfind(expected,0)==0;
         std::string response="HTTP/1.1 200 OK\r\nContent-Length: "+std::to_string(body.size())+"\r\nConnection: close\r\n\r\n"+body;
         send(peer,response.data(),static_cast<int>(response.size()),0);
@@ -77,6 +77,7 @@ int main() {
     try {
         canceledRequestClosesConnection();
         successfulRequestReturnsBody(ShadowRequestKind::Phrase);
+        successfulRequestReturnsBody(ShadowRequestKind::PhraseModel);
         successfulRequestReturnsBody(ShadowRequestKind::Ranking);
         std::cout<<"PASS: real loopback WinHTTP cancellation and subsequent response\n";
     }catch(const std::exception &error){std::cerr<<error.what()<<'\n';WSACleanup();return 1;}

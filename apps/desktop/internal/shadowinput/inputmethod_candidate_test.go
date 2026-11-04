@@ -128,7 +128,7 @@ func TestShortPhrasesWorkWithoutModel(t *testing.T) {
 		t.Error("missing Qwen disabled the phrase endpoint")
 	}
 	for source, want := range map[string]string{"部门": "负责人", "公司": "同事", "我们部门": "负责人"} {
-		got, err := a.candidate(context.Background(), source)
+		got, err := a.lookupPhrase(context.Background(), source)
 		if err != nil || got != want {
 			t.Errorf("%s: got %q (%v), want %q", source, got, err, want)
 		}
@@ -137,7 +137,7 @@ func TestShortPhrasesWorkWithoutModel(t *testing.T) {
 		t.Fatal("dictionary lookup reached the model")
 	}
 	a.s.AICandidates = false
-	if _, err := a.candidate(context.Background(), "部门"); !errors.Is(err, inputcandidate.ErrUnavailable) {
+	if _, err := a.lookupPhrase(context.Background(), "部门"); !errors.Is(err, inputcandidate.ErrUnavailable) {
 		t.Fatal("opt-out still offers dictionary phrases")
 	}
 }
@@ -147,7 +147,7 @@ func TestPersonalPhrasePriorityEditingAndReload(t *testing.T) {
 	a := phraseApp(t, local)
 	check := func(source, want string) {
 		t.Helper()
-		got, err := a.candidate(context.Background(), source)
+		got, err := a.lookupPhrase(context.Background(), source)
 		if err != nil || got != want {
 			t.Fatalf("%s: got %q (%v), want %q", source, got, err, want)
 		}
@@ -173,7 +173,7 @@ func TestPersonalPhrasePriorityEditingAndReload(t *testing.T) {
 func TestModelOnlyRunsForEnoughUnfinishedContext(t *testing.T) {
 	local := &candidateLocal{ready: true}
 	a := phraseApp(t, local)
-	for _, text := range []string{"今天", "办公室", "明天我们。", "明天我们，嗯", "123456", "abcdef", ""} {
+	for _, text := range []string{"部", "明天我们。", "明天我们，嗯", "123456", "abcdef", ""} {
 		if _, err := a.candidate(context.Background(), text); !errors.Is(err, inputcandidate.ErrUnavailable) {
 			t.Errorf("model accepted context %q: %v", text, err)
 		}
@@ -185,6 +185,20 @@ func TestModelOnlyRunsForEnoughUnfinishedContext(t *testing.T) {
 	defer cancel()
 	if _, err := a.candidate(ctx, "明天我们"); !errors.Is(err, context.DeadlineExceeded) || local.calls != 0 {
 		t.Fatalf("continued typing must cancel before inference: calls=%d err=%v", local.calls, err)
+	}
+}
+
+func TestQwenAssociatesTwoCharactersEvenWithDictionaryMatch(t *testing.T) {
+	local := &candidateLocal{ready: true, result: "会议"}
+	a := phraseApp(t, local)
+	got, err := a.candidate(context.Background(), "部门")
+	if err != nil || got != "会议" || local.calls != 1 {
+		t.Fatalf("Qwen did not supplement the short dictionary word: %q %v calls=%d", got, err, local.calls)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Millisecond)
+	defer cancel()
+	if _, err := a.candidate(ctx, "公司"); !errors.Is(err, context.DeadlineExceeded) || local.calls != 1 {
+		t.Fatalf("short-word inference ignored typing cancellation: calls=%d err=%v", local.calls, err)
 	}
 }
 

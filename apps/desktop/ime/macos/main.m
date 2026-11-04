@@ -370,10 +370,10 @@ static NSString *voiceInputTitle(NSString *dictationKey) {
         self.ai.ready = ^{ [weakSelf showAI]; };
         self.ai.valid = ^BOOL(void) { return [ArionBridge shared].active==weakSelf && weakSelf.typing.aiSource.length && weakSelf.typing.revision==weakSelf.ai.revision; };
         self.ai.panel.selected = ^(NSUInteger index, NSUInteger row, NSUInteger revision) {
-            (void)index; (void)row;
+            (void)row;
             ArionInputController *owner=weakSelf;
-            if ([ArionBridge shared].active == owner && owner.ai.text && shadowAIEnabled() && revision == owner.ai.revision)
-                [owner.typing commitAI:owner.ai.text revision:revision];
+            if ([ArionBridge shared].active == owner && [owner.ai textAtIndex:index] && shadowAIEnabled() && revision == owner.ai.revision)
+                [owner.typing commitAI:[owner.ai textAtIndex:index] revision:revision];
         };
     }
 #endif
@@ -432,6 +432,8 @@ static NSString *voiceInputTitle(NSString *dictationKey) {
         return YES;
     }
 #ifdef SHADOWINPUT_IME
+    if((event.keyCode==125 || event.keyCode==126) && !(event.modifierFlags & (NSEventModifierFlagCommand|NSEventModifierFlagControl|NSEventModifierFlagOption|NSEventModifierFlagShift)) && shadowAIEnabled() &&
+       [self.ai moveSelection:event.keyCode==125?1:-1])return YES;
     if (event.keyCode == 48 && !(event.modifierFlags & (NSEventModifierFlagCommand|NSEventModifierFlagControl|NSEventModifierFlagOption|NSEventModifierFlagShift)) && self.ai.text && shadowAIEnabled() &&
         [self.typing commitAI:self.ai.text revision:self.ai.revision]) return YES;
 #endif
@@ -470,7 +472,9 @@ static NSString *voiceInputTitle(NSString *dictationKey) {
     [self.client attributesForCharacterIndex:[self.client selectedRange].location lineHeightRectangle:&caret];
     if (NSIsEmptyRect(caret)) { [self.ai.panel hide]; return; }
     // A separate row leaves ordinary candidate indices and Space unchanged.
-    [self.ai.panel showCandidates:@[[self.ai.text stringByAppendingString:@"  ⇥"]] highlighted:0 lastPage:YES revision:self.ai.revision caretRect:caret];
+    NSMutableArray *choices=[self.ai.texts mutableCopy];
+    choices[self.ai.selected]=[choices[self.ai.selected] stringByAppendingString:@"  ⇥"];
+    [self.ai.panel showCandidates:choices highlighted:self.ai.selected lastPage:YES revision:self.ai.revision caretRect:caret];
 }
 #endif
 - (void)refreshCandidates {

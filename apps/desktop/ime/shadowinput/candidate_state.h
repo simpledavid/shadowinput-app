@@ -6,9 +6,9 @@
 #include <string>
 #include "continuation.h"
 
-enum class ShadowRequestKind { Phrase, Ranking };
-inline const wchar_t *shadowEndpoint(ShadowRequestKind kind) { return kind==ShadowRequestKind::Ranking?L"ranking.endpoint":L"candidate.endpoint"; }
-inline const wchar_t *shadowRoute(ShadowRequestKind kind) { return kind==ShadowRequestKind::Ranking?L"/rank":L"/candidate"; }
+enum class ShadowRequestKind { Phrase, PhraseModel, Ranking };
+inline const wchar_t *shadowEndpoint(ShadowRequestKind kind) { return kind==ShadowRequestKind::Ranking?L"ranking.endpoint":kind==ShadowRequestKind::PhraseModel?L"phrase-model.endpoint":L"candidate.endpoint"; }
+inline const wchar_t *shadowRoute(ShadowRequestKind kind) { return kind==ShadowRequestKind::Ranking?L"/rank":kind==ShadowRequestKind::PhraseModel?L"/phrase-model":L"/candidate"; }
 inline size_t shadowResultLimit(ShadowRequestKind kind) { return kind==ShadowRequestKind::Ranking?4096:ShadowSuffixRunes; }
 struct ShadowCandidateRequest {
     const ShadowRequestKind kind;
@@ -22,7 +22,7 @@ struct ShadowCandidateRequest {
 class ShadowCandidateState {
     const ShadowRequestKind kind;
     std::mutex mutex;
-    bool alive=true;
+    bool alive=true,finished=false;
     uint64_t revision=0,started=0;
     std::string source;
     std::wstring result;
@@ -36,7 +36,7 @@ public:
     void update(const std::string &text,uint64_t version) {
         std::lock_guard<std::mutex> lock(mutex);
         revoke();
-        source=text;revision=version;result.clear();
+        source=text;revision=version;result.clear();finished=false;
     }
     std::shared_ptr<ShadowCandidateRequest> begin(uint64_t version) {
         std::lock_guard<std::mutex> lock(mutex);
@@ -51,12 +51,13 @@ public:
         std::lock_guard<std::mutex> lock(mutex);
         if(current!=request || request->canceled)return;
         current.reset();
-        if(alive && revision==request->revision && text.size()<=shadowResultLimit(kind))result=text;
+        if(alive && revision==request->revision){finished=true;if(text.size()<=shadowResultLimit(kind))result=text;}
     }
     std::wstring read(uint64_t version) {
         std::lock_guard<std::mutex> lock(mutex);
         return version==revision?result:std::wstring{};
     }
+    bool done(uint64_t version){std::lock_guard<std::mutex> lock(mutex);return alive && version==revision && finished;}
     void close() {
         std::lock_guard<std::mutex> lock(mutex);
         revoke();

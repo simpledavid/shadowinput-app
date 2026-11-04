@@ -50,34 +50,48 @@ func matchInputPhrase(source string, phrases []string) string {
 	return best
 }
 
-// ModelPhraseEligible requires four Han characters in the unfinished clause.
-// Short dictionary lookups do not need this gate or a running model.
+// ModelPhraseEligible admits two Han characters in the unfinished clause.
 func ModelPhraseEligible(source string) bool {
 	if !ValidPhraseContext(source) {
 		return false
 	}
-	clause := source
+	clause := phraseClause(source)
+	last, _ := utf8.DecodeLastRuneInString(clause)
+	return unicode.Is(unicode.Han, last) && phraseHanCount(clause) >= 2
+}
+
+func InputPhraseTask(source string) string {
+	if phraseHanCount(phraseClause(source)) < 4 {
+		return TaskAssociateWord
+	}
+	return TaskCompletePhrase
+}
+
+func phraseClause(source string) string {
 	if at := strings.LastIndexAny(source, "，。！？；：,.!?;:\n"); at >= 0 {
 		_, size := utf8.DecodeRuneInString(source[at:])
-		clause = source[at+size:]
+		return source[at+size:]
 	}
-	last, _ := utf8.DecodeLastRuneInString(clause)
-	if !unicode.Is(unicode.Han, last) {
-		return false
-	}
-	han := 0
-	for _, r := range clause {
+	return source
+}
+
+func phraseHanCount(text string) int {
+	count := 0
+	for _, r := range text {
 		if unicode.Is(unicode.Han, r) {
-			han++
+			count++
 		}
 	}
-	return han >= 4
+	return count
 }
 
 // ValidGeneratedPhrase adds conservative fact checks to the shared wire bounds.
 // It does not establish semantic relevance or factual correctness.
 func ValidGeneratedPhrase(source, suffix string) bool {
 	if !ValidPhraseSuffix(source, suffix) {
+		return false
+	}
+	if InputPhraseTask(source) == TaskAssociateWord && (utf8.RuneCountInString(suffix) > 6 || strings.IndexFunc(suffix, func(r rune) bool { return unicode.IsPunct(r) || unicode.IsSpace(r) }) >= 0) {
 		return false
 	}
 	for _, pattern := range []*regexp.Regexp{writingNumbers, writingDates, writingPromises} {
