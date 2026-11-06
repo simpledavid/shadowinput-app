@@ -5,6 +5,11 @@ products on shadowinput.com. Interaction direction follows the public
 [Immersive Translate feature documentation](https://immersivetranslate.com/zh-Hans/docs/).
 Source code, interface and branding are shadowinput's own implementation.
 
+New feature development is paused while the [system input method](shadowinput-ime.md)
+is the primary focus. The existing preview is retained. Fast translation engines
+have not been added, and the two-second page-translation target remains unmet and
+unverified; it is deferred rather than marked complete.
+
 ## Implemented preview
 
 - Authorization, verified identity/plan grant, rotating refresh, local logout,
@@ -12,8 +17,8 @@ Source code, interface and branding are shadowinput's own implementation.
 - Bilingual paragraphs, restore, selection, optional Shift-hover and preview/apply
   for unchanged plain inputs.
 - Optional automatic translation per explicitly authorized website.
-- Single-view popup controls and a two-action page launcher; independently opt in to keep
-  that launcher on a website without automatic translation.
+- Single-view popup controls and a two-action page launcher that appears on ordinary
+  pages subject to Chrome site access; automatic translation stays separately opted in.
 - Chinese/English UI; Chinese/English/Japanese targets; cancellation and recovery.
 
 This is not production feature parity. PDF layout translation, EPUB export,
