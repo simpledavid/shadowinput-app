@@ -26,7 +26,12 @@ static BOOL shadowAIEnabled(void) { return shadowEndpointEnabled(@"candidate"); 
  if ((self=[super init])) {
   self.panel=[ArionCandidatePanel new];self.panel.showsNumbers=NO;
   __weak ShadowCandidate *weak=self;
-  self.timer=[NSTimer scheduledTimerWithTimeInterval:0.25 repeats:YES block:^(NSTimer *timer){(void)timer;ShadowCandidate *owner=weak;if(owner && (!shadowAIEnabled() || (owner.text.length && owner.valid && !owner.valid())))[owner clear];}];
+  self.timer=[NSTimer scheduledTimerWithTimeInterval:0.25 repeats:YES block:^(NSTimer *timer){
+   (void)timer;
+   ShadowCandidate *owner=weak;
+   BOOL hasWork=owner.task || owner.modelTask || owner.text.length;
+   if(owner && (!shadowAIEnabled() || (hasWork && owner.valid && !owner.valid())))[owner clear];
+  }];
   self.session=shadowLocalSession();
  }
  return self;
