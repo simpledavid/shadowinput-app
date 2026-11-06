@@ -2,6 +2,8 @@
 
 For the active shadowinput product, use [setup](shadowinput.md), [input method](shadowinput-ime.md), [browser extension](shadowinput-extension.md), and [repository migration](shadowinput-repository.md). The Arion scope below is inherited historical reference.
 
+Active development prioritizes the system input method. The [input-method guide](shadowinput-ime.md) owns the current delivery order, Windows WeChat acceptance gate and release boundary. Browser feature development is paused; its existing preview is retained.
+
 Arion is a voice input product with a native Go desktop shell. macOS on Apple silicon and Windows x64 are the supported implementation targets ([ADR 021](../decisions/021-apple-silicon-only-macos.md)); mobile work must preserve portable contracts without creating mobile apps yet.
 
 ## Confirmed scope
