@@ -6,7 +6,8 @@ products on shadowinput.com. Interaction direction follows the public
 Source code, interface and branding are shadowinput's own implementation.
 
 New feature development is paused while the [system input method](shadowinput-ime.md)
-is the primary focus. The existing preview is retained. Fast translation engines
+is the primary focus. The website marks the extension as under development and
+removes its download/install entry points; historical GitHub previews are retained. Fast translation engines
 have not been added, and the two-second page-translation target remains unmet and
 unverified; it is deferred rather than marked complete.
 

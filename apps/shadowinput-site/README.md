@@ -2,11 +2,14 @@
 
 The buildless website for [shadowinput.com](https://shadowinput.com/). Serve `public/` directly. This directory is separate from the upstream Arion website in `apps/site/`.
 
-The page leads with system Pinyin/local phrases and standalone browser reading. The desktop writing demonstration follows those primary features. The interactive examples use preset text. They do not call a model. Downloads
-link directly to the input-method preview DMG/EXE and standalone browser ZIP.
+The page leads with system Pinyin/local phrases. Browser translation is labeled
+under development throughout the page, with a disabled download control and no
+ZIP link or installation instructions. Historical releases remain on GitHub.
+The desktop writing demonstration uses preset text and does not call a model.
+Downloads link directly to the input-method preview DMG/EXE.
 The HTML download rows own versions and URLs; each release includes corresponding
 source and checksums. Input-method runtime limits and the extension's verified
-sign-in/model discovery versus pending translation/browser acceptance are visible before download. See the
+sign-in/model discovery versus pending translation/browser acceptance remain documented. See the
 [extension verification ledger](../../docs/project/shadowinput-extension.md).
 
 ## Cloudflare deployment
