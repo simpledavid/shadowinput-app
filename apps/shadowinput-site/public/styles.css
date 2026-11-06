@@ -1058,6 +1058,14 @@ kbd {
   width:16px;
   height:16px;
 }
+.download-row .button:disabled {
+  background:var(--soft);
+  color:var(--muted);
+  border-color:var(--line);
+  cursor:default;
+  transform:none;
+  box-shadow:none;
+}
 .download-note {
   max-width:620px;
   margin:22px auto 0;

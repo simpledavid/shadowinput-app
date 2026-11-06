@@ -3,6 +3,9 @@
 #import "../learning.h"
 #import "../candidate_panel.h"
 #import "../../shadowinput/candidate_macos.h"
+#include <atomic>
+
+static std::atomic<bool> holdUnmatchedModel{false};
 
 // A deterministic transport response exercises the native scheduling/cancel path.
 @interface PhraseProtocol : NSURLProtocol
@@ -22,6 +25,14 @@
  }
 }
 - (void)startLoading {
+ if(holdUnmatchedModel){
+  if([self.request.URL.path isEqual:@"/candidate"]){
+   NSHTTPURLResponse *response=[[NSHTTPURLResponse alloc] initWithURL:self.request.URL statusCode:204 HTTPVersion:@"HTTP/1.1" headerFields:nil];
+   [self.client URLProtocol:self didReceiveResponse:response cacheStoragePolicy:NSURLCacheStorageNotAllowed];
+   [self.client URLProtocolDidFinishLoading:self];
+  }
+  return;
+ }
  if([self.request.URL.path isEqual:@"/phrase-model"])
   dispatch_after(dispatch_time(DISPATCH_TIME_NOW,100*NSEC_PER_MSEC),dispatch_get_main_queue(),^{[self deliver];});
  else [self deliver];
@@ -83,6 +94,23 @@ static void checkPhraseDelivery(NSString *directory) {
  require([candidate moveSelection:1],@"selection freezes pending model");
  [NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:.2]];
  require(candidate.texts.count==1 && [candidate.text isEqual:@"负责人"],@"late model cannot change a navigating list");
+ __block BOOL valid=YES;
+ candidate.valid=^BOOL(void){return valid;};
+ holdUnmatchedModel=true;
+ [candidate update:@"未知" revision:4];
+ deadline=[NSDate dateWithTimeIntervalSinceNow:2];
+ while(candidate.task && deadline.timeIntervalSinceNow>0)[NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:.005]];
+ require(!candidate.task && !candidate.text.length && candidate.modelTask,@"unmatched dictionary leaves model pending without a visible choice");
+ NSURLSessionDataTask *pending=candidate.modelTask;
+ valid=NO;[candidate.timer fire];
+ require(!candidate.modelTask && !candidate.text.length,@"caret invalidation cancels a pending model before any choice is visible");
+ require(pending.state==NSURLSessionTaskStateCanceling || pending.state==NSURLSessionTaskStateCompleted,@"invalidation cancels the transport, not only its UI reference");
+ holdUnmatchedModel=false;
+ valid=YES;
+ [candidate update:@"部门" revision:5];
+ deadline=[NSDate dateWithTimeIntervalSinceNow:2];
+ while(candidate.texts.count<2 && deadline.timeIntervalSinceNow>0)[NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:.005]];
+ require(candidate.texts.count==2 && [candidate.text isEqual:@"负责人"],@"a fresh commit still receives dictionary and model choices after cancellation");
  [candidate clear];[candidate.timer invalidate];[candidate.session invalidateAndCancel];
  [NSFileManager.defaultManager removeItemAtPath:endpoint error:nil];
  [NSFileManager.defaultManager removeItemAtPath:modelEndpoint error:nil];

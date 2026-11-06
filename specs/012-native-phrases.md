@@ -5,7 +5,7 @@ This derivative extends the native Pinyin entry point in [ADR 036](../docs/decis
 | ID | Observable requirement | Verification |
 | --- | --- | --- |
 | NPH-01 | Space/numbers commit ordinary words without waiting for a model. Only committed text starts a short continuation request; independent fast reranking may use the current candidate snapshot. | Native Rime/NSTextView fixture |
-| NPH-02 | Tab/click appends once at the unchanged caret. Continued typing, deletion, caret navigation, focus changes and opt-out revoke old work. | Native fixture, portable request-state and broker cancellation tests; real OS acceptance separately |
+| NPH-02 | Tab/click appends once at the unchanged caret. Continued typing, deletion, caret navigation, focus changes and opt-out revoke old work, including pending requests before a choice is visible. | Native fixture, portable request-state and broker cancellation tests; real OS acceptance separately |
 | NPH-03 | Context contains only this input method's recent contiguous commits, is bounded and expires. No surrounding document reads or input history. | Shared UTF-8 context fixture and source inspection |
 | NPH-04 | Automatic phrases use local lookup or the local model regardless of writing-provider selection. No cloud fallback or implicit model download. | Local routing, opt-out and missing-model tests |
 | NPH-05 | Complete short suffixes only; reject echo, multiline/control output, repeated boundaries and obvious assistant replies. Generated suffixes additionally reject new numeric/date/promise tokens. | Generator and broker tests; filtering is heuristic |
